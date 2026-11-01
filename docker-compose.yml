@@ -1,0 +1,11 @@
+services:
+  bot-dashboard:
+    build: .
+    container_name: discord-bot-dashboard
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "5000:5000"
+    volumes:
+      # Lokal äquivalent zum Unraid-Mapping /mnt/user/appdata/mein_botname -> /app/data
+      - ./data:/app/data

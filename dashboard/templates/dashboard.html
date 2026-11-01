@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+
+    <nav class="bg-slate-800/80 border-b border-slate-700 px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center font-bold text-sm">B</div>
+            <span class="font-semibold text-lg">Bot Dashboard</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <a href="{{ url_for('embed_generator') }}"
+               class="text-sm text-slate-300 hover:text-white transition-colors">Embed-Generator</a>
+            <div class="flex items-center gap-2">
+                {% if user.avatar %}
+                    <img src="https://cdn.discordapp.com/avatars/{{ user.id }}/{{ user.avatar }}.png"
+                         alt="{{ user.username }}" class="w-8 h-8 rounded-full">
+                {% else %}
+                    <div class="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-xs">
+                        {{ user.username[0] | upper }}
+                    </div>
+                {% endif %}
+                <span class="text-sm text-slate-300">{{ user.username }}</span>
+            </div>
+            <a href="{{ url_for('logout') }}"
+               class="text-sm text-slate-400 hover:text-white transition-colors">Logout</a>
+        </div>
+    </nav>
+
+    <main class="max-w-5xl mx-auto px-6 py-10">
+        <h1 class="text-2xl font-bold mb-1">Deine Server</h1>
+        <p class="text-slate-400 mb-8">Server, auf denen du Administratorrechte besitzt.</p>
+
+        {% if guilds %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {% for guild in guilds %}
+                    <div class="bg-slate-800 rounded-2xl p-5 flex flex-col items-center text-center shadow-lg hover:shadow-indigo-500/10 hover:-translate-y-0.5 transition-all">
+                        {% if guild.icon %}
+                            <img src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png"
+                                 alt="{{ guild.name }}" class="w-16 h-16 rounded-full mb-4">
+                        {% else %}
+                            <div class="w-16 h-16 rounded-full bg-indigo-600 flex items-center justify-center text-xl font-bold mb-4">
+                                {{ guild.name[0] | upper }}
+                            </div>
+                        {% endif %}
+                        <h2 class="font-semibold mb-4 truncate w-full">{{ guild.name }}</h2>
+                        <button class="w-full bg-indigo-600 hover:bg-indigo-500 transition-colors text-white text-sm font-semibold py-2 rounded-lg">
+                            Verwalten
+                        </button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="bg-slate-800 rounded-2xl p-10 text-center text-slate-400">
+                Du hast auf keinem Server Administratorrechte.
+            </div>
+        {% endif %}
+    </main>
+
+</body>
+</html>
