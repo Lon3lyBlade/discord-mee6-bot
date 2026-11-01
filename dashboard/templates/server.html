@@ -93,8 +93,86 @@
                     </button>
                 </form>
             </div>
+
+            <div class="mt-10">
+                <h2 class="text-xl font-bold mb-1">Embed-Generator</h2>
+                <p class="text-slate-400 mb-6">
+                    Erstelle eine eingebettete Nachricht, die der Bot direkt in einen Channel dieses Servers postet.
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <form method="post" action="{{ url_for('send_embed', guild_id=guild.id) }}"
+                          class="bg-slate-800 rounded-2xl p-6 space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1" for="embed_channel_id">Channel</label>
+                            <select id="embed_channel_id" name="channel_id" required
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="">— Channel auswählen —</option>
+                                {% for channel in channels %}
+                                    <option value="{{ channel.id }}">#{{ channel.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1" for="embed_title">Titel</label>
+                            <input type="text" id="embed_title" name="title"
+                                   placeholder="Titel des Embeds"
+                                   class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1" for="embed_description">Beschreibung</label>
+                            <textarea id="embed_description" name="description" rows="5"
+                                      placeholder="Inhalt der Nachricht"
+                                      class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1" for="embed_color">Farbe</label>
+                            <div class="flex items-center gap-3">
+                                <input type="color" id="embed_color" name="color" value="#5865F2"
+                                       class="h-10 w-14 rounded-lg border border-slate-700 bg-slate-900 cursor-pointer">
+                                <span id="embed-color-value" class="text-sm text-slate-400">#5865F2</span>
+                            </div>
+                        </div>
+                        <button type="submit"
+                                class="w-full bg-indigo-600 hover:bg-indigo-500 transition-colors text-white font-semibold py-2.5 rounded-lg">
+                            Embed senden
+                        </button>
+                    </form>
+
+                    <div>
+                        <p class="text-sm font-medium text-slate-300 mb-2">Vorschau</p>
+                        <div class="bg-slate-800 rounded-2xl p-4">
+                            <div id="embed-preview-card" class="bg-slate-700/50 rounded-lg p-4 border-l-4" style="border-color: #5865F2;">
+                                <p id="embed-preview-title" class="font-semibold text-slate-100 mb-1"></p>
+                                <p id="embed-preview-description" class="text-sm text-slate-300 whitespace-pre-line"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         {% endif %}
     </main>
 
+    <script>
+        const embedTitleInput = document.getElementById('embed_title');
+        const embedDescriptionInput = document.getElementById('embed_description');
+        const embedColorInput = document.getElementById('embed_color');
+        const embedColorValue = document.getElementById('embed-color-value');
+        const embedPreviewCard = document.getElementById('embed-preview-card');
+        const embedPreviewTitle = document.getElementById('embed-preview-title');
+        const embedPreviewDescription = document.getElementById('embed-preview-description');
+
+        function updateEmbedPreview() {
+            embedPreviewTitle.textContent = embedTitleInput.value || 'Titel des Embeds';
+            embedPreviewDescription.textContent = embedDescriptionInput.value || 'Inhalt der Nachricht';
+            embedPreviewCard.style.borderColor = embedColorInput.value;
+            embedColorValue.textContent = embedColorInput.value;
+        }
+
+        if (embedTitleInput) {
+            [embedTitleInput, embedDescriptionInput, embedColorInput].forEach((el) => el.addEventListener('input', updateEmbedPreview));
+            updateEmbedPreview();
+        }
+    </script>
 </body>
 </html>

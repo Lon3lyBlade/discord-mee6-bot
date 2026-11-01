@@ -212,42 +212,33 @@ def set_autorole(guild_id):
     return redirect(url_for("server_detail", guild_id=guild_id, message=message))
 
 
-@app.route("/embed-generator", methods=["GET", "POST"])
+@app.route("/server/<guild_id>/send-embed", methods=["POST"])
 @login_required
-def embed_generator():
-    message = None
-    error = None
-    form_data = {"channel_id": "", "title": "", "description": "", "color": "#5865F2"}
+def send_embed(guild_id):
+    discord_session = make_discord_session(token=session["oauth_token"])
+    if get_admin_guild_or_none(discord_session, guild_id) is None:
+        return render_template("server.html", error="access"), 403
 
-    if request.method == "POST":
-        form_data["channel_id"] = request.form.get("channel_id", "").strip()
-        form_data["title"] = request.form.get("title", "").strip()
-        form_data["description"] = request.form.get("description", "").strip()
-        form_data["color"] = request.form.get("color", "#5865F2").strip()
+    channel_id = request.form.get("channel_id", "").strip()
+    title = request.form.get("title", "").strip()
+    description = request.form.get("description", "").strip()
+    color = request.form.get("color", "#5865F2").strip()
 
-        if not form_data["channel_id"].isdigit():
-            error = "Bitte eine gültige numerische Kanal-ID angeben."
-        else:
-            try:
-                response = requests.post(
-                    f"{BOT_API_URL}/api/send-embed",
-                    json={
-                        "channel_id": int(form_data["channel_id"]),
-                        "title": form_data["title"],
-                        "description": form_data["description"],
-                        "color": form_data["color"],
-                    },
-                    headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
-                    timeout=5,
-                )
-                if response.ok:
-                    message = "Embed wurde erfolgreich an den Bot übergeben."
-                else:
-                    error = response.json().get("error", "Der Bot hat die Anfrage abgelehnt.")
-            except requests.RequestException:
-                error = "Der Bot ist über die interne API aktuell nicht erreichbar."
+    if not channel_id.isdigit():
+        return redirect(url_for("server_detail", guild_id=guild_id, message="Bitte einen Channel auswählen."))
 
-    return render_template("embed_generator.html", message=message, error=error, form_data=form_data)
+    try:
+        response = requests.post(
+            f"{BOT_API_URL}/api/guilds/{guild_id}/send-embed",
+            json={"channel_id": int(channel_id), "title": title, "description": description, "color": color},
+            headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
+            timeout=5,
+        )
+        message = "Embed wurde gesendet." if response.ok else response.json().get("error", "Der Bot hat die Anfrage abgelehnt.")
+    except requests.RequestException:
+        message = "Der Bot ist über die interne API aktuell nicht erreichbar."
+
+    return redirect(url_for("server_detail", guild_id=guild_id, message=message))
 
 
 @app.route("/logout")

@@ -43,13 +43,13 @@ class InternalAPI(commands.Cog):
             )
 
         app = web.Application(middlewares=[self._auth_middleware])
-        app.router.add_post("/api/send-embed", self._handle_send_embed)
         app.router.add_get("/api/guilds/{guild_id}", self._handle_get_guild)
         app.router.add_get("/api/guilds/{guild_id}/channels", self._handle_get_channels)
         app.router.add_get("/api/guilds/{guild_id}/roles", self._handle_get_roles)
         app.router.add_get("/api/guilds/{guild_id}/config", self._handle_get_config)
         app.router.add_post("/api/guilds/{guild_id}/welcome-channel", self._handle_set_welcome_channel)
         app.router.add_post("/api/guilds/{guild_id}/autorole", self._handle_set_autorole)
+        app.router.add_post("/api/guilds/{guild_id}/send-embed", self._handle_send_embed)
 
         self.runner = web.AppRunner(app)
         await self.runner.setup()
@@ -67,34 +67,6 @@ class InternalAPI(commands.Cog):
         if auth_header != f"Bearer {API_SECRET}":
             return web.json_response({"error": "unauthorized"}, status=401)
         return await handler(request)
-
-    async def _handle_send_embed(self, request: web.Request) -> web.Response:
-        try:
-            payload = await request.json()
-            channel_id = int(payload["channel_id"])
-        except (ValueError, KeyError, TypeError):
-            return web.json_response({"error": "channel_id fehlt oder ist ungültig"}, status=400)
-
-        channel = self.bot.get_channel(channel_id)
-        if not isinstance(channel, (discord.TextChannel, discord.Thread)):
-            return web.json_response({"error": "Channel nicht gefunden oder kein Textchannel"}, status=404)
-
-        title = (payload.get("title") or "").strip()
-        description = (payload.get("description") or "").strip()
-        color = parse_color(payload.get("color", ""))
-
-        embed = discord.Embed(
-            title=title or None,
-            description=description or None,
-            color=color,
-        )
-
-        try:
-            await channel.send(embed=embed)
-        except discord.Forbidden:
-            return web.json_response({"error": "Keine Berechtigung in diesem Channel"}, status=403)
-
-        return web.json_response({"status": "ok"})
 
     def _get_guild(self, request: web.Request) -> discord.Guild | None:
         try:
@@ -185,6 +157,41 @@ class InternalAPI(commands.Cog):
             )
 
         await db.set_auto_role(guild.id, role.id)
+        return web.json_response({"status": "ok"})
+
+    async def _handle_send_embed(self, request: web.Request) -> web.Response:
+        guild = self._get_guild(request)
+        if guild is None:
+            return web.json_response({"error": "Bot ist auf diesem Server nicht vorhanden"}, status=404)
+
+        try:
+            payload = await request.json()
+            channel_id = int(payload["channel_id"])
+        except (ValueError, KeyError, TypeError):
+            return web.json_response({"error": "channel_id fehlt oder ist ungültig"}, status=400)
+
+        # Channel wird gezielt über die Guild aufgelöst (nicht global über den Bot), damit
+        # ein Dashboard-User kein Embed in einen Channel auf einem fremden Server schicken
+        # kann, auf dem er keine Adminrechte hat.
+        channel = guild.get_channel(channel_id)
+        if not isinstance(channel, discord.TextChannel):
+            return web.json_response({"error": "Channel gehört nicht zu diesem Server oder ist kein Textchannel"}, status=404)
+
+        title = (payload.get("title") or "").strip()
+        description = (payload.get("description") or "").strip()
+        color = parse_color(payload.get("color", ""))
+
+        embed = discord.Embed(
+            title=title or None,
+            description=description or None,
+            color=color,
+        )
+
+        try:
+            await channel.send(embed=embed)
+        except discord.Forbidden:
+            return web.json_response({"error": "Keine Berechtigung in diesem Channel"}, status=403)
+
         return web.json_response({"status": "ok"})
 
 
