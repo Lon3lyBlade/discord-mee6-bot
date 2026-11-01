@@ -114,6 +114,104 @@ def dashboard():
     return render_template("dashboard.html", user=user, guilds=admin_guilds)
 
 
+def get_admin_guild_or_none(discord_session, guild_id: str) -> dict | None:
+    guilds = discord_session.get(f"{API_BASE_URL}/users/@me/guilds").json()
+    for guild in guilds:
+        if guild["id"] == guild_id and is_admin_guild(guild):
+            return guild
+    return None
+
+
+@app.route("/server/<guild_id>")
+@login_required
+def server_detail(guild_id):
+    discord_session = make_discord_session(token=session["oauth_token"])
+    guild = get_admin_guild_or_none(discord_session, guild_id)
+    if guild is None:
+        return render_template("server.html", error="access"), 403
+
+    try:
+        bot_guild = requests.get(
+            f"{BOT_API_URL}/api/guilds/{guild_id}",
+            headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
+            timeout=5,
+        )
+        if bot_guild.status_code == 404:
+            return render_template("server.html", error="not_in_guild", guild=guild)
+        bot_guild.raise_for_status()
+
+        channels = requests.get(
+            f"{BOT_API_URL}/api/guilds/{guild_id}/channels",
+            headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
+            timeout=5,
+        ).json()["channels"]
+        roles = requests.get(
+            f"{BOT_API_URL}/api/guilds/{guild_id}/roles",
+            headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
+            timeout=5,
+        ).json()["roles"]
+        config = requests.get(
+            f"{BOT_API_URL}/api/guilds/{guild_id}/config",
+            headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
+            timeout=5,
+        ).json()
+    except requests.RequestException:
+        return render_template("server.html", error="unreachable", guild=guild)
+
+    return render_template(
+        "server.html",
+        guild=guild,
+        channels=channels,
+        roles=roles,
+        config=config,
+        message=request.args.get("message"),
+    )
+
+
+@app.route("/server/<guild_id>/welcome-channel", methods=["POST"])
+@login_required
+def set_welcome_channel(guild_id):
+    discord_session = make_discord_session(token=session["oauth_token"])
+    if get_admin_guild_or_none(discord_session, guild_id) is None:
+        return render_template("server.html", error="access"), 403
+
+    channel_id = request.form.get("channel_id", "").strip()
+    try:
+        response = requests.post(
+            f"{BOT_API_URL}/api/guilds/{guild_id}/welcome-channel",
+            json={"channel_id": channel_id},
+            headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
+            timeout=5,
+        )
+        message = "Willkommens-Channel gespeichert." if response.ok else response.json().get("error", "Fehler beim Speichern.")
+    except requests.RequestException:
+        message = "Der Bot ist über die interne API aktuell nicht erreichbar."
+
+    return redirect(url_for("server_detail", guild_id=guild_id, message=message))
+
+
+@app.route("/server/<guild_id>/autorole", methods=["POST"])
+@login_required
+def set_autorole(guild_id):
+    discord_session = make_discord_session(token=session["oauth_token"])
+    if get_admin_guild_or_none(discord_session, guild_id) is None:
+        return render_template("server.html", error="access"), 403
+
+    role_id = request.form.get("role_id", "").strip()
+    try:
+        response = requests.post(
+            f"{BOT_API_URL}/api/guilds/{guild_id}/autorole",
+            json={"role_id": role_id},
+            headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
+            timeout=5,
+        )
+        message = "AutoRole gespeichert." if response.ok else response.json().get("error", "Fehler beim Speichern.")
+    except requests.RequestException:
+        message = "Der Bot ist über die interne API aktuell nicht erreichbar."
+
+    return redirect(url_for("server_detail", guild_id=guild_id, message=message))
+
+
 @app.route("/embed-generator", methods=["GET", "POST"])
 @login_required
 def embed_generator():

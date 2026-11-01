@@ -71,9 +71,41 @@ Kein Git-Repo bisher initialisiert (`git init` wurde nie ausgeführt).
   `ADMINISTRATOR`-Bit (`0x8`) in der Permission-Bitmaske gesetzt hat.
 - `/embed-generator`: Formular (Kanal-ID, Titel, Beschreibung, Farbe), schickt die Daten
   per `requests.post()` an die interne Bot-API.
+- `/server/<guild_id>`: Server-Verwaltungsseite (siehe Punkt 6 unten). Der "Verwalten"-Button
+  auf jeder Server-Karte in `dashboard.html` verlinkt hierhin.
 - Tailwind CSS über CDN, dunkles Theme im MEE6-Stil.
-- **Der "Verwalten"-Button** auf jeder Server-Karte in `dashboard.html` ist aktuell nur ein
-  Platzhalter ohne Linkziel/Route — eine echte Server-Verwaltungsseite existiert noch nicht.
+
+### 6. Server-Verwaltungsseite (`/server/<guild_id>`)
+- `get_admin_guild_or_none()` prüft bei **jedem** Request neu über die OAuth2-Session, ob der
+  eingeloggte User auf dieser Guild-ID Owner/Admin ist (kein Caching in der Session, Discord
+  ist die Quelle der Wahrheit für die Permission-Bitmaske) — sonst `403` (`server.html` mit
+  `error="access"`).
+- Danach wird die Bot-API gefragt (`GET /api/guilds/<id>`, `/channels`, `/roles`, `/config`),
+  ob der Bot überhaupt auf dem Server ist. Wenn nicht: `error="not_in_guild"`. Wenn die
+  Bot-API nicht erreichbar ist: `error="unreachable"`.
+- Zwei Formulare (Willkommens-Channel, AutoRole) posten an `/server/<guild_id>/welcome-channel`
+  bzw. `/server/<guild_id>/autorole`, die jeweils erneut die Admin-Prüfung machen und dann die
+  neuen Bot-API-Endpunkte aufrufen (siehe unten) statt die DB direkt zu beschreiben — damit
+  bleibt die Validierungslogik (Rolle unterhalb der höchsten Bot-Rolle, Channel gehört zur
+  Guild) an einer Stelle (`cogs/internal_api.py`), nicht doppelt in Flask.
+- **Neue Bot-API-Endpunkte** in `cogs/internal_api.py`, alle wie `/api/send-embed` per
+  Bearer-Token geschützt und 404, falls der Bot nicht auf der angefragten Guild ist:
+  - `GET /api/guilds/<id>` — Guild-Infos (Existenzcheck)
+  - `GET /api/guilds/<id>/channels` — alle Textchannels
+  - `GET /api/guilds/<id>/roles` — Rollen, die automatisch vergeben werden können (ohne
+    `@everyone`, ohne Rollen auf/über der höchsten Bot-Rolle — gleiche Regel wie in
+    `/set-autorole`)
+  - `GET /api/guilds/<id>/config` — aktuell gespeicherte `welcome_channel_id`/`auto_role_id`
+  - `POST /api/guilds/<id>/welcome-channel` `{channel_id}` — validiert, dass der Channel zur
+    Guild gehört, dann `db.set_welcome_channel()`
+  - `POST /api/guilds/<id>/autorole` `{role_id}` — validiert Guild-Zugehörigkeit + die gleiche
+    Höhen-Regel, dann `db.set_auto_role()`
+- **Bekannte Lücke:** Es gibt (wie bei den Slash-Commands) keine Möglichkeit, eine einmal
+  gesetzte Config wieder auf "nichts" zurückzusetzen — die Dropdowns bieten eine
+  "— nichts ausgewählt —"-Option an, aber ein Submit mit leerem Wert schlägt mit einer
+  Fehlermeldung fehl statt die Spalte auf `NULL` zu setzen. Falls gewünscht: eigene
+  `unset_welcome_channel()`/`unset_auto_role()`-Funktionen in `database/db.py` ergänzen und
+  die Bot-API-Endpunkte einen leeren Wert als "löschen" behandeln lassen.
 
 ### 5. Datenbank (`database/db.py`)
 - Eine Tabelle `guild_config (guild_id PK, welcome_channel_id, auto_role_id)`.
@@ -158,12 +190,15 @@ ein sinnvoller nächster Schritt, um diese Ad-hoc-Checks dauerhaft nutzbar zu ma
 - **Kein XP/Level-System.** Wurde in einer frühen Phase bewusst zurückgestellt
   (Nutzerentscheidung), ist aber ein klassisches MEE6-Feature und naheliegende Erweiterung
   als neues Cog (`cogs/leveling.py` + eigene Tabelle/Spalten in `database/db.py`).
-- **"Verwalten"-Button im Dashboard ist funktionslos** (siehe oben) — keine
-  Server-Detailseite vorhanden.
-- **Embed-Generator prüft nicht**, ob die eingegebene Kanal-ID tatsächlich zu einem Server
-  gehört, auf dem der eingeloggte User Admin-Rechte hat — nur der Login an sich wird
-  geprüft. Für echte Autorisierung bräuchte man einen zusätzlichen Bot-API-Endpunkt
-  (z. B. `GET /api/guilds/<id>/channels`), um Kanäle serverseitig einer Guild zuzuordnen.
+- **Embed-Generator prüft weiterhin nicht**, ob die eingegebene Kanal-ID tatsächlich zu einem
+  Server gehört, auf dem der eingeloggte User Admin-Rechte hat — nur der Login an sich wird
+  geprüft. Der dafür nötige Bot-API-Endpunkt (`GET /api/guilds/<id>/channels`) existiert jetzt
+  bereits (siehe Punkt 6, wurde für die Server-Verwaltungsseite gebaut) — der Embed-Generator
+  müsste nur noch umgestellt werden: Kanal-ID-Textfeld durch ein Dropdown aus
+  `/api/guilds/<guild_id>/channels` ersetzen (Guild-ID z. B. als Pfadparameter wie bei
+  `/server/<guild_id>`), statt eine freie Kanal-ID anzunehmen.
+- **Kein Zurücksetzen von Willkommens-Channel/AutoRole auf "nichts"** über Dashboard oder
+  Slash-Commands möglich (siehe Punkt 6 oben für Details).
 - **Keine Tests/CI**, kein Git-Repo bisher initialisiert.
 - Flask läuft mit dem eingebauten Dev-Server (`app.run(...)`), nicht mit einem
   Production-WSGI-Server wie gunicorn/waitress — für ein Homelab-Setup bewusst so belassen,

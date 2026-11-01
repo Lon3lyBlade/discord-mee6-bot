@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server verwalten</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+
+    <nav class="bg-slate-800/80 border-b border-slate-700 px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center font-bold text-sm">B</div>
+            <span class="font-semibold text-lg">Bot Dashboard</span>
+        </div>
+        <a href="{{ url_for('dashboard') }}" class="text-sm text-slate-400 hover:text-white transition-colors">
+            &larr; Zurück zur Übersicht
+        </a>
+    </nav>
+
+    <main class="max-w-3xl mx-auto px-6 py-10">
+        {% if error == "access" %}
+            <div class="bg-slate-800 rounded-2xl p-10 text-center text-slate-400">
+                Du hast auf diesem Server keine Administratorrechte.
+            </div>
+        {% elif error == "not_in_guild" %}
+            <h1 class="text-2xl font-bold mb-1">{{ guild.name }}</h1>
+            <div class="mt-6 rounded-xl bg-amber-900/40 border border-amber-700 text-amber-300 px-4 py-3 text-sm">
+                Der Bot ist auf diesem Server nicht eingeladen. Lade ihn zuerst ein, um Einstellungen
+                vornehmen zu können.
+            </div>
+        {% elif error == "unreachable" %}
+            <h1 class="text-2xl font-bold mb-1">{{ guild.name }}</h1>
+            <div class="mt-6 rounded-xl bg-red-900/40 border border-red-700 text-red-300 px-4 py-3 text-sm">
+                Der Bot ist über die interne API aktuell nicht erreichbar. Versuche es später erneut.
+            </div>
+        {% else %}
+            <h1 class="text-2xl font-bold mb-1">{{ guild.name }}</h1>
+            <p class="text-slate-400 mb-8">Server-Einstellungen verwalten.</p>
+
+            {% if message %}
+                <div class="mb-6 rounded-xl bg-emerald-900/40 border border-emerald-700 text-emerald-300 px-4 py-3 text-sm">
+                    {{ message }}
+                </div>
+            {% endif %}
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <form method="post" action="{{ url_for('set_welcome_channel', guild_id=guild.id) }}"
+                      class="bg-slate-800 rounded-2xl p-6 space-y-4">
+                    <h2 class="font-semibold">Willkommensnachricht</h2>
+                    <p class="text-sm text-slate-400">
+                        Channel, in dem neue Mitglieder automatisch begrüßt werden.
+                    </p>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1" for="channel_id">Channel</label>
+                        <select id="channel_id" name="channel_id"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="">— kein Channel ausgewählt —</option>
+                            {% for channel in channels %}
+                                <option value="{{ channel.id }}" {% if channel.id == config.welcome_channel_id %}selected{% endif %}>
+                                    #{{ channel.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit"
+                            class="w-full bg-indigo-600 hover:bg-indigo-500 transition-colors text-white font-semibold py-2.5 rounded-lg">
+                        Speichern
+                    </button>
+                </form>
+
+                <form method="post" action="{{ url_for('set_autorole', guild_id=guild.id) }}"
+                      class="bg-slate-800 rounded-2xl p-6 space-y-4">
+                    <h2 class="font-semibold">AutoRole</h2>
+                    <p class="text-sm text-slate-400">
+                        Rolle, die neue Mitglieder automatisch beim Beitritt erhalten.
+                    </p>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1" for="role_id">Rolle</label>
+                        <select id="role_id" name="role_id"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="">— keine Rolle ausgewählt —</option>
+                            {% for role in roles %}
+                                <option value="{{ role.id }}" {% if role.id == config.auto_role_id %}selected{% endif %}>
+                                    {{ role.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit"
+                            class="w-full bg-indigo-600 hover:bg-indigo-500 transition-colors text-white font-semibold py-2.5 rounded-lg">
+                        Speichern
+                    </button>
+                </form>
+            </div>
+        {% endif %}
+    </main>
+
+</body>
+</html>

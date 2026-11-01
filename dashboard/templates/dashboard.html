@@ -49,9 +49,10 @@
                             </div>
                         {% endif %}
                         <h2 class="font-semibold mb-4 truncate w-full">{{ guild.name }}</h2>
-                        <button class="w-full bg-indigo-600 hover:bg-indigo-500 transition-colors text-white text-sm font-semibold py-2 rounded-lg">
+                        <a href="{{ url_for('server_detail', guild_id=guild.id) }}"
+                           class="w-full bg-indigo-600 hover:bg-indigo-500 transition-colors text-white text-sm font-semibold py-2 rounded-lg block">
                             Verwalten
-                        </button>
+                        </a>
                     </div>
                 {% endfor %}
             </div>
