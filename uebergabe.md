@@ -59,11 +59,24 @@ Kein Git-Repo bisher initialisiert (`git init` wurde nie ausgeführt).
 - Hört auf `BOT_API_HOST:BOT_API_PORT` (Default `0.0.0.0:8080`), nur per
   `Authorization: Bearer <INTERNAL_API_SECRET>` erreichbar.
 - Alle Endpunkte sind guild-gebunden (`/api/guilds/<guild_id>/...`) und geben `404`
-  zurück, falls der Bot nicht auf dieser Guild ist — u. a. `POST .../send-embed` mit JSON
-  `{channel_id, title, description, color}`. Der Channel wird dabei gezielt über
-  `guild.get_channel()` aufgelöst statt global über den Bot, damit ein Dashboard-User
-  kein Embed in einen Channel auf einem fremden Server schicken kann, auf dem er keine
-  Adminrechte hat (war früher eine offene Lücke, siehe Punkt 6 unten).
+  zurück, falls der Bot nicht auf dieser Guild ist. Der Channel für `send-embed` wird
+  dabei gezielt über `guild.get_channel()` aufgelöst statt global über den Bot, damit ein
+  Dashboard-User kein Embed in einen Channel auf einem fremden Server schicken kann, auf
+  dem er keine Adminrechte hat (war früher eine offene Lücke, siehe Punkt 6 unten).
+- `POST .../send-embed` ist **immer Multipart** (`await request.post()`), nie reines JSON —
+  auch ohne Bild-Upload. Alle Skalarwerte (Titel, Beschreibung, Farbe, Author/Footer/
+  Thumbnail, Timestamp-Flag, Felder-Liste, `channel_id`) stecken gebündelt in einem
+  JSON-String im Textpart `fields_json`; ein optionaler Bild-Upload kommt als echter
+  Datei-Part `image_file` dazu. **Fallstrick, falls daran weitergearbeitet wird:** `fields_json`
+  darf **keinen** expliziten Content-Type (z. B. `"application/json"`) im Multipart-Part
+  bekommen — aiohttps `request.post()` liefert einen Textpart nur dann als `str` zurück,
+  wenn der Part keinen oder einen `text/*`-Content-Type hat; mit `application/json` kommt
+  stattdessen ein `bytearray` an. `dashboard/app.py` schickt das Feld deshalb bewusst als
+  2-Tupel `(None, json.dumps(payload))` ohne Content-Type; `_handle_send_embed` dekodiert
+  zusätzlich defensiv ein `bytes`/`bytearray`-Ergebnis, falls doch mal ein Client mit
+  explizitem Content-Type postet. `client_max_size` von `web.Application(...)` ist von
+  aiohttps Default (1 MiB) auf 10 MB hochgesetzt (siehe `MAX_IMAGE_SIZE` unten), Flask setzt
+  passend `MAX_CONTENT_LENGTH = 9 MB`.
 - Da Bot und Dashboard im selben Container als zwei Prozesse laufen, erreicht das
   Dashboard diese API einfach über `http://127.0.0.1:8080` (kein Docker-Netzwerk nötig,
   das war nur in einer früheren Zwischenversion mit zwei Containern relevant).
@@ -97,6 +110,26 @@ Kein Git-Repo bisher initialisiert (`git init` wurde nie ausgeführt).
   `server.html` — Kanal wird per `<select>` aus den schon geladenen `channels` der Guild
   gewählt statt eine Kanal-ID frei einzutippen (Nutzeranforderung: Channel-Auswahl statt
   ID-Eingabe, zugleich schließt das die alte Autorisierungslücke).
+- **Embed-Generator-Upgrade:** zusätzlich zu Titel/Beschreibung/Farbe/Channel jetzt auch
+  Titel-Link (`url`), Timestamp-Checkbox, Author (Name/URL/Icon), Footer (Text/Icon),
+  Thumbnail-URL, Bild per URL **oder** per Datei-Upload (Upload hat Vorrang, siehe unten),
+  sowie beliebig viele dynamische Felder (Name/Value/Inline). Die Felder-Liste wird im
+  Formular **nicht** als Hidden-JSON gepflegt, sondern als parallele Arrays
+  `field_name[]`/`field_value[]`/`field_inline[]` — `inline` ist bewusst ein `<select>`
+  (`"true"`/`"false"`) statt einer Checkbox, weil unchecked Checkboxen beim Submit fehlen
+  würden und die drei Arrays sonst aus dem Index liefen. Die Vorschau in `server.html` ist
+  jetzt eine Discord-ähnliche Struktur (Author-Zeile, Titel als Link, Felder-Grid mit
+  `flex: 1 1 30%` für inline bzw. `1 1 100%` für volle Breite, Bild, Thumbnail oben rechts,
+  Footer mit Zeitstempel), inkl. Live-Vorschau eines hochgeladenen Bildes über
+  `URL.createObjectURL()`.
+- **Discord-Embed-Limits** werden in `_handle_send_embed` vorab geprüft (max. 25 Felder,
+  Titel ≤256, Beschreibung ≤4096, Feldname ≤256, Feldwert ≤1024, Footer-Text ≤2048,
+  Autor-Name ≤256, Gesamtlänge `len(embed) ≤ 6000`) und liefern bei Verstoß eine klare
+  deutsche 400-Fehlermeldung statt einer rohen `discord.HTTPException` von Discords API.
+- **Bild-Upload:** Cap 8 MB (`MAX_IMAGE_SIZE`), erlaubte Content-Types PNG/JPEG/GIF/WebP.
+  Das Bild wird als `discord.File` mitgeschickt und per `embed.set_image(url=
+  f"attachment://{filename}")` ins Embed eingebunden (Discords Standard-Pattern für
+  Attachment-Bilder in Embeds).
 - **Bot-API-Endpunkte** in `cogs/internal_api.py`, alle guild-gebunden
   (`/api/guilds/<id>/...`), per Bearer-Token geschützt und 404, falls der Bot nicht auf der
   angefragten Guild ist:
@@ -110,9 +143,9 @@ Kein Git-Repo bisher initialisiert (`git init` wurde nie ausgeführt).
     Guild gehört, dann `db.set_welcome_channel()`
   - `POST /api/guilds/<id>/autorole` `{role_id}` — validiert Guild-Zugehörigkeit + die gleiche
     Höhen-Regel, dann `db.set_auto_role()`
-  - `POST /api/guilds/<id>/send-embed` `{channel_id, title, description, color}` — validiert
-    Guild-Zugehörigkeit des Channels, dann `channel.send(embed=...)` (löst den alten globalen
-    `POST /api/send-embed`-Endpunkt ab, der keine Guild-Zuordnung kannte)
+  - `POST /api/guilds/<id>/send-embed` — Multipart (siehe oben), validiert Guild-Zugehörigkeit
+    des Channels + Discord-Limits, baut das volle Embed (Author/Footer/Thumbnail/Bild/Felder/
+    Timestamp) und sendet es, optional mit Datei-Attachment
 - **Bekannte Lücke:** Es gibt (wie bei den Slash-Commands) keine Möglichkeit, eine einmal
   gesetzte Config wieder auf "nichts" zurückzusetzen — die Dropdowns bieten eine
   "— nichts ausgewählt —"-Option an, aber ein Submit mit leerem Wert schlägt mit einer

@@ -1,3 +1,4 @@
+import json
 import os
 from functools import wraps
 
@@ -5,6 +6,7 @@ import requests
 from dotenv import load_dotenv
 from flask import Flask, redirect, render_template, request, session, url_for
 from requests_oauthlib import OAuth2Session
+from werkzeug.exceptions import RequestEntityTooLarge
 
 # load_dotenv() ist rein für die lokale Entwicklung gedacht und no-opt, falls keine
 # .env-Datei existiert. Im Unraid-Container kommen alle Werte über echte
@@ -30,6 +32,9 @@ if os.environ.get("OAUTH_INSECURE_TRANSPORT", "1") == "1":
 
 app = Flask(__name__)
 app.secret_key = require_env("FLASK_SECRET_KEY")
+# Etwas großzügiger als das 8-MB-Bildlimit in cogs/internal_api.py, damit Multipart-Overhead
+# (Boundaries, Header, restliche Formularfelder) nicht knapp abgeschnitten wird.
+app.config["MAX_CONTENT_LENGTH"] = 9 * 1024 * 1024
 
 DISCORD_CLIENT_ID = require_env("DISCORD_CLIENT_ID")
 DISCORD_CLIENT_SECRET = require_env("DISCORD_CLIENT_SECRET")
@@ -219,24 +224,75 @@ def send_embed(guild_id):
     if get_admin_guild_or_none(discord_session, guild_id) is None:
         return render_template("server.html", error="access"), 403
 
-    channel_id = request.form.get("channel_id", "").strip()
-    title = request.form.get("title", "").strip()
-    description = request.form.get("description", "").strip()
-    color = request.form.get("color", "#5865F2").strip()
+    try:
+        channel_id = request.form.get("channel_id", "").strip()
+        if not channel_id.isdigit():
+            return redirect(url_for("server_detail", guild_id=guild_id, message="Bitte einen Channel auswählen."))
 
-    if not channel_id.isdigit():
-        return redirect(url_for("server_detail", guild_id=guild_id, message="Bitte einen Channel auswählen."))
+        field_names = request.form.getlist("field_name[]")
+        field_values = request.form.getlist("field_value[]")
+        field_inlines = request.form.getlist("field_inline[]")
+
+        fields = []
+        for name, value, inline in zip(field_names, field_values, field_inlines):
+            name, value = name.strip(), value.strip()
+            if not name or not value:
+                continue  # leere Zeilen (z. B. hinzugefügt, aber nie befüllt) überspringen
+            fields.append({"name": name, "value": value, "inline": inline == "true"})
+
+        payload = {
+            "channel_id": int(channel_id),
+            "title": request.form.get("title", "").strip(),
+            "description": request.form.get("description", "").strip(),
+            "url": request.form.get("url", "").strip(),
+            "color": request.form.get("color", "#5865F2").strip(),
+            "timestamp": request.form.get("timestamp") == "on",
+            "author": {
+                "name": request.form.get("author_name", "").strip(),
+                "url": request.form.get("author_url", "").strip(),
+                "icon_url": request.form.get("author_icon_url", "").strip(),
+            },
+            "footer": {
+                "text": request.form.get("footer_text", "").strip(),
+                "icon_url": request.form.get("footer_icon_url", "").strip(),
+            },
+            "thumbnail_url": request.form.get("thumbnail_url", "").strip(),
+            "image_url": request.form.get("image_url", "").strip(),
+            "fields": fields,
+        }
+
+        # fields_json wird bewusst über files= statt data= übergeben (Tupel mit filename=None),
+        # damit requests den Request IMMER als multipart/form-data kodiert - auch ohne
+        # Bild-Upload. So gibt es auf Bot-Seite nur einen Parsing-Pfad. Bewusst OHNE expliziten
+        # Content-Type: aiohttp liefert einen Multipart-Textpart nur dann als str zurück, wenn
+        # kein (oder ein text/*) Content-Type gesetzt ist - mit "application/json" kommt auf
+        # Bot-Seite stattdessen ein bytearray an.
+        multipart_files = {"fields_json": (None, json.dumps(payload))}
+
+        image_file = request.files.get("image_file")
+        if image_file and image_file.filename:
+            multipart_files["image_file"] = (
+                image_file.filename,
+                image_file.stream,
+                image_file.mimetype or "application/octet-stream",
+            )
+    except RequestEntityTooLarge:
+        return redirect(
+            url_for("server_detail", guild_id=guild_id, message="Die hochgeladene Datei ist zu groß (max. 8 MB).")
+        )
 
     try:
         response = requests.post(
             f"{BOT_API_URL}/api/guilds/{guild_id}/send-embed",
-            json={"channel_id": int(channel_id), "title": title, "description": description, "color": color},
+            files=multipart_files,
             headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
-            timeout=5,
+            timeout=10,
         )
         message = "Embed wurde gesendet." if response.ok else response.json().get("error", "Der Bot hat die Anfrage abgelehnt.")
     except requests.RequestException:
         message = "Der Bot ist über die interne API aktuell nicht erreichbar."
+    except ValueError:
+        message = "Der Bot hat die Anfrage abgelehnt."
 
     return redirect(url_for("server_detail", guild_id=guild_id, message=message))
 
