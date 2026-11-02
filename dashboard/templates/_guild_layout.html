@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Server verwalten{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#0f172a] text-slate-100 min-h-screen">
+
+    <div class="flex min-h-screen">
+        {% include "_sidebar.html" %}
+
+        <div class="flex-1 flex flex-col min-w-0">
+            <header class="relative z-30 h-16 border-b border-slate-800 bg-[#0f172a]/80 backdrop-blur px-4 md:px-6 flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center font-bold text-sm shrink-0 md:hidden">B</div>
+
+                    {% if guild %}
+                        {% if guild.icon %}
+                            <img src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png"
+                                 alt="{{ guild.name }}" class="w-9 h-9 rounded-full ring-2 ring-slate-800 shrink-0">
+                        {% else %}
+                            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-sm font-bold shrink-0">
+                                {{ guild.name[0] | upper }}
+                            </div>
+                        {% endif %}
+                        <div class="min-w-0">
+                            <p class="text-[11px] text-slate-500 leading-none">Hub von</p>
+                            <h1 class="font-semibold truncate leading-tight">{{ guild.name }}</h1>
+                        </div>
+
+                        {% if guilds %}
+                        <details class="relative shrink-0">
+                            <summary class="list-none [&::-webkit-details-marker]:hidden flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-800/70 cursor-pointer transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </summary>
+                            <div class="absolute left-0 mt-2 w-56 rounded-xl border border-slate-800 bg-[#1e293b] shadow-xl p-1.5 z-20 max-h-80 overflow-y-auto">
+                                <p class="px-2.5 py-1.5 text-[11px] uppercase tracking-wide text-slate-500">Server wechseln</p>
+                                {% for g in guilds %}
+                                    <a href="{{ url_for('server_detail', guild_id=g.id) }}"
+                                       class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-colors {{ 'bg-indigo-600/15 text-indigo-300' if g.id == guild.id else 'text-slate-300 hover:bg-slate-800/70' }}">
+                                        {% if g.icon %}
+                                            <img src="https://cdn.discordapp.com/icons/{{ g.id }}/{{ g.icon }}.png" class="w-6 h-6 rounded-full shrink-0">
+                                        {% else %}
+                                            <div class="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-[10px] font-bold shrink-0">
+                                                {{ g.name[0] | upper }}
+                                            </div>
+                                        {% endif %}
+                                        <span class="truncate">{{ g.name }}</span>
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        </details>
+                        {% endif %}
+                    {% else %}
+                        <h1 class="font-semibold truncate">Server verwalten</h1>
+                    {% endif %}
+                </div>
+
+                <div class="flex items-center gap-4 shrink-0">
+                    {% if user %}
+                    <div class="flex items-center gap-2">
+                        {% if user.avatar %}
+                            <img src="https://cdn.discordapp.com/avatars/{{ user.id }}/{{ user.avatar }}.png"
+                                 alt="{{ user.username }}" class="w-8 h-8 rounded-full ring-2 ring-slate-800">
+                        {% else %}
+                            <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs">
+                                {{ user.username[0] | upper }}
+                            </div>
+                        {% endif %}
+                        <span class="text-sm text-slate-300 hidden sm:inline">{{ user.username }}</span>
+                    </div>
+                    {% endif %}
+                    <a href="{{ url_for('logout') }}"
+                       class="text-sm text-slate-400 hover:text-white transition-colors">Logout</a>
+                </div>
+            </header>
+
+            <main class="flex-1 px-4 md:px-8 py-10 max-w-6xl w-full mx-auto">
+                {% if error == "access" %}
+                    <div class="rounded-xl border border-slate-800 bg-[#1e293b] p-10 text-center text-slate-400">
+                        Du hast auf diesem Server keine Administratorrechte.
+                    </div>
+                {% elif error == "not_in_guild" %}
+                    <div class="mt-2 rounded-xl bg-amber-900/30 border border-amber-800 text-amber-300 px-4 py-3 text-sm">
+                        Der Bot ist auf diesem Server nicht eingeladen. Lade ihn zuerst ein, um Einstellungen
+                        vornehmen zu können.
+                    </div>
+                {% elif error == "unreachable" %}
+                    <div class="mt-2 rounded-xl bg-red-900/30 border border-red-800 text-red-300 px-4 py-3 text-sm">
+                        Der Bot ist über die interne API aktuell nicht erreichbar. Versuche es später erneut.
+                    </div>
+                {% else %}
+                    {% if message %}
+                        <div class="mb-6 rounded-xl bg-emerald-900/30 border border-emerald-800 text-emerald-300 px-4 py-3 text-sm">
+                            {{ message }}
+                        </div>
+                    {% endif %}
+
+                    {% block page_content %}{% endblock %}
+                {% endif %}
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // <details>-Dropdowns (z. B. Server-Switcher) schließen, wenn außerhalb geklickt wird.
+        document.addEventListener('click', (event) => {
+            document.querySelectorAll('details[open]').forEach((details) => {
+                if (!details.contains(event.target)) {
+                    details.removeAttribute('open');
+                }
+            });
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

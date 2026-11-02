@@ -1,3 +1,22 @@
+{% macro guild_nav_link(endpoint, label, icon_paths, key) %}
+{% if guild %}
+<a href="{{ url_for(endpoint, guild_id=guild.id) }}"
+   class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ 'bg-indigo-600/15 text-indigo-300' if active == key else 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60' }}">
+    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+        {% for icon_path in icon_paths %}<path stroke-linecap="round" stroke-linejoin="round" d="{{ icon_path }}" />{% endfor %}
+    </svg>
+    {{ label }}
+</a>
+{% else %}
+<span class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 opacity-60 cursor-default">
+    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+        {% for icon_path in icon_paths %}<path stroke-linecap="round" stroke-linejoin="round" d="{{ icon_path }}" />{% endfor %}
+    </svg>
+    {{ label }}
+</span>
+{% endif %}
+{% endmacro %}
+
 <aside class="hidden md:flex md:w-60 md:flex-col shrink-0 border-r border-slate-800 bg-[#0f172a]">
     <div class="h-16 flex items-center gap-2 px-5 border-b border-slate-800">
         <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center font-bold text-sm shrink-0">B</div>
@@ -13,24 +32,22 @@
             Dashboard
         </a>
 
-        {% if guild %}
-        <a href="{{ url_for('server_detail', guild_id=guild.id) }}"
-           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ 'bg-indigo-600/15 text-indigo-300' if active == 'settings' else 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60' }}">
-            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            Settings
-        </a>
-        {% else %}
-        <span class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 opacity-60 cursor-default">
-            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            Settings
-        </span>
-        {% endif %}
+        {{ guild_nav_link('server_detail', 'Settings', [
+            'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z',
+            'M15 12a3 3 0 11-6 0 3 3 0 016 0z',
+        ], 'settings') }}
+
+        {{ guild_nav_link('tempvoice_page', 'TempVoice', [
+            'M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z',
+            'M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728',
+        ], 'tempvoice') }}
+
+        {{ guild_nav_link('embed_builder_page', 'Embed-Generator', [
+            'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6z',
+            'M4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2z',
+            'M14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z',
+            'M14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z',
+        ], 'embed') }}
 
         {% set disabled_items = [
             ('Moderation', 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'),

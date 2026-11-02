@@ -129,16 +129,12 @@ def dashboard():
     return render_template("dashboard.html", user=user, guilds=admin_guilds)
 
 
-@app.route("/server/<guild_id>")
-@login_required
-def server_detail(guild_id):
-    discord_session = make_discord_session(token=session["oauth_token"])
-    user = discord_session.get(f"{API_BASE_URL}/users/@me").json()
-    admin_guilds = get_admin_guilds(discord_session)
-    guild = next((g for g in admin_guilds if g["id"] == guild_id), None)
-    if guild is None:
-        return render_template("server.html", error="access"), 403
+def fetch_guild_bot_data(guild_id: str):
+    """Holt Server-Status, Channels, Rollen und Config von der internen Bot-API.
 
+    Gibt (error, data) zurück: error ist None bei Erfolg, sonst "not_in_guild"
+    oder "unreachable" (data dann None).
+    """
     try:
         bot_guild = requests.get(
             f"{BOT_API_URL}/api/guilds/{guild_id}",
@@ -146,7 +142,7 @@ def server_detail(guild_id):
             timeout=5,
         )
         if bot_guild.status_code == 404:
-            return render_template("server.html", error="not_in_guild", guild=guild, user=user, guilds=admin_guilds)
+            return "not_in_guild", None
         bot_guild.raise_for_status()
         stats = bot_guild.json()
 
@@ -171,18 +167,101 @@ def server_detail(guild_id):
             timeout=5,
         ).json()
     except requests.RequestException:
-        return render_template("server.html", error="unreachable", guild=guild, user=user, guilds=admin_guilds)
+        return "unreachable", None
+
+    return None, {
+        "stats": stats,
+        "channels": channels,
+        "voice_channels": voice_channels,
+        "roles": roles,
+        "config": config,
+    }
+
+
+def resolve_guild_or_response(guild_id: str, template: str):
+    """Login + Adminrechte-Check, gemeinsam für alle guild-bezogenen Seiten.
+
+    Gibt entweder (discord_session, user, admin_guilds, guild) oder eine fertige
+    Flask-Response (bei fehlenden Adminrechten) zurück.
+    """
+    discord_session = make_discord_session(token=session["oauth_token"])
+    user = discord_session.get(f"{API_BASE_URL}/users/@me").json()
+    admin_guilds = get_admin_guilds(discord_session)
+    guild = next((g for g in admin_guilds if g["id"] == guild_id), None)
+    if guild is None:
+        return render_template(template, error="access"), 403
+    return discord_session, user, admin_guilds, guild
+
+
+@app.route("/server/<guild_id>")
+@login_required
+def server_detail(guild_id):
+    result = resolve_guild_or_response(guild_id, "settings.html")
+    if not isinstance(result, tuple) or len(result) != 4:
+        return result
+    _discord_session, user, admin_guilds, guild = result
+
+    error, data = fetch_guild_bot_data(guild_id)
+    if error:
+        return render_template("settings.html", error=error, guild=guild, user=user, guilds=admin_guilds)
 
     return render_template(
-        "server.html",
+        "settings.html",
+        active="settings",
         guild=guild,
         user=user,
         guilds=admin_guilds,
-        stats=stats,
-        channels=channels,
-        voice_channels=voice_channels,
-        roles=roles,
-        config=config,
+        stats=data["stats"],
+        channels=data["channels"],
+        roles=data["roles"],
+        config=data["config"],
+        message=request.args.get("message"),
+    )
+
+
+@app.route("/server/<guild_id>/tempvoice")
+@login_required
+def tempvoice_page(guild_id):
+    result = resolve_guild_or_response(guild_id, "tempvoice.html")
+    if not isinstance(result, tuple) or len(result) != 4:
+        return result
+    _discord_session, user, admin_guilds, guild = result
+
+    error, data = fetch_guild_bot_data(guild_id)
+    if error:
+        return render_template("tempvoice.html", error=error, guild=guild, user=user, guilds=admin_guilds)
+
+    return render_template(
+        "tempvoice.html",
+        active="tempvoice",
+        guild=guild,
+        user=user,
+        guilds=admin_guilds,
+        voice_channels=data["voice_channels"],
+        config=data["config"],
+        message=request.args.get("message"),
+    )
+
+
+@app.route("/server/<guild_id>/embed-builder")
+@login_required
+def embed_builder_page(guild_id):
+    result = resolve_guild_or_response(guild_id, "embed_builder.html")
+    if not isinstance(result, tuple) or len(result) != 4:
+        return result
+    _discord_session, user, admin_guilds, guild = result
+
+    error, data = fetch_guild_bot_data(guild_id)
+    if error:
+        return render_template("embed_builder.html", error=error, guild=guild, user=user, guilds=admin_guilds)
+
+    return render_template(
+        "embed_builder.html",
+        active="embed",
+        guild=guild,
+        user=user,
+        guilds=admin_guilds,
+        channels=data["channels"],
         message=request.args.get("message"),
     )
 
@@ -192,7 +271,7 @@ def server_detail(guild_id):
 def set_welcome_channel(guild_id):
     discord_session = make_discord_session(token=session["oauth_token"])
     if get_admin_guild_or_none(discord_session, guild_id) is None:
-        return render_template("server.html", error="access"), 403
+        return render_template("settings.html", error="access"), 403
 
     channel_id = request.form.get("channel_id", "").strip()
     try:
@@ -214,7 +293,7 @@ def set_welcome_channel(guild_id):
 def set_autorole(guild_id):
     discord_session = make_discord_session(token=session["oauth_token"])
     if get_admin_guild_or_none(discord_session, guild_id) is None:
-        return render_template("server.html", error="access"), 403
+        return render_template("settings.html", error="access"), 403
 
     role_id = request.form.get("role_id", "").strip()
     try:
@@ -236,7 +315,7 @@ def set_autorole(guild_id):
 def set_tempvoice_channels(guild_id):
     discord_session = make_discord_session(token=session["oauth_token"])
     if get_admin_guild_or_none(discord_session, guild_id) is None:
-        return render_template("server.html", error="access"), 403
+        return render_template("tempvoice.html", error="access"), 403
 
     channel_ids = [cid for cid in request.form.getlist("channel_ids") if cid.isdigit()]
     try:
@@ -249,8 +328,10 @@ def set_tempvoice_channels(guild_id):
         message = "Tempvoice-Kanäle gespeichert." if response.ok else response.json().get("error", "Fehler beim Speichern.")
     except requests.RequestException:
         message = "Der Bot ist über die interne API aktuell nicht erreichbar."
+    except ValueError:
+        message = "Der Bot hat die Anfrage abgelehnt."
 
-    return redirect(url_for("server_detail", guild_id=guild_id, message=message))
+    return redirect(url_for("tempvoice_page", guild_id=guild_id, message=message))
 
 
 @app.route("/server/<guild_id>/send-embed", methods=["POST"])
@@ -258,12 +339,12 @@ def set_tempvoice_channels(guild_id):
 def send_embed(guild_id):
     discord_session = make_discord_session(token=session["oauth_token"])
     if get_admin_guild_or_none(discord_session, guild_id) is None:
-        return render_template("server.html", error="access"), 403
+        return render_template("embed_builder.html", error="access"), 403
 
     try:
         channel_id = request.form.get("channel_id", "").strip()
         if not channel_id.isdigit():
-            return redirect(url_for("server_detail", guild_id=guild_id, message="Bitte einen Channel auswählen."))
+            return redirect(url_for("embed_builder_page", guild_id=guild_id, message="Bitte einen Channel auswählen."))
 
         field_names = request.form.getlist("field_name[]")
         field_values = request.form.getlist("field_value[]")
@@ -314,7 +395,7 @@ def send_embed(guild_id):
             )
     except RequestEntityTooLarge:
         return redirect(
-            url_for("server_detail", guild_id=guild_id, message="Die hochgeladene Datei ist zu groß (max. 8 MB).")
+            url_for("embed_builder_page", guild_id=guild_id, message="Die hochgeladene Datei ist zu groß (max. 8 MB).")
         )
 
     try:
@@ -330,7 +411,7 @@ def send_embed(guild_id):
     except ValueError:
         message = "Der Bot hat die Anfrage abgelehnt."
 
-    return redirect(url_for("server_detail", guild_id=guild_id, message=message))
+    return redirect(url_for("embed_builder_page", guild_id=guild_id, message=message))
 
 
 @app.route("/logout")
