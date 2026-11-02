@@ -12,6 +12,10 @@ Dashboard laufen **in einem einzigen Docker-Container** als zwei Prozesse.
 - **AutoMod** — löscht Discord-Einladungslinks und erkennt Nachrichten-Spam (löscht die
   Nachrichten, verwarnt per DM), protokolliert beides in einem Mod-Log-Channel
   (`/set-modlog`).
+- **Moderation** — Slash-Commands für Kick, Ban, Unban, Timeout/Untimeout, Warn (inkl.
+  persistenter Verwarnungs-Historie) und Clear/Purge von Nachrichten. Alle Aktionen werden
+  im Mod-Log-Channel protokolliert; die Verwarnungen lassen sich zusätzlich im Dashboard
+  einsehen und löschen.
 - **TempVoice** — erstellt pro Nutzer automatisch einen temporären Sprachkanal beim
   Betreten eines beliebigen konfigurierten Ersteller-Kanals (in dessen eigener Kategorie)
   und löscht ihn wieder, sobald er leer ist. Konfiguration läuft ausschließlich über das
@@ -30,6 +34,7 @@ Discord-host/
 │   ├── welcome.py                 # Willkommensnachricht
 │   ├── autorole.py                # Automatische Rollenvergabe
 │   ├── automod.py                 # Einladungslink-Filter + Anti-Spam
+│   ├── moderation.py               # Kick/Ban/Timeout/Warn/Clear-Slash-Commands
 │   ├── tempvoice.py                # Temporäre Sprachkanäle
 │   └── internal_api.py            # Interne aiohttp-API für Bot<->Dashboard-Kommunikation
 ├── database/
@@ -42,6 +47,7 @@ Discord-host/
 │       ├── _sidebar.html          # Sidebar inkl. Server-Switcher
 │       ├── _guild_layout.html     # Gemeinsames Layout für die Server-Unterseiten
 │       ├── settings.html          # Willkommens-Channel + AutoRole
+│       ├── moderation.html         # Mod-Log-Channel + Verwarnungs-Übersicht
 │       ├── tempvoice.html         # TempVoice-Kanalauswahl
 │       └── embed_builder.html     # Embed-Generator
 ├── .github/workflows/

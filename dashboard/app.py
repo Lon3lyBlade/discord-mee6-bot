@@ -266,6 +266,83 @@ def embed_builder_page(guild_id):
     )
 
 
+@app.route("/server/<guild_id>/moderation")
+@login_required
+def moderation_page(guild_id):
+    result = resolve_guild_or_response(guild_id, "moderation.html")
+    if not isinstance(result, tuple) or len(result) != 4:
+        return result
+    _discord_session, user, admin_guilds, guild = result
+
+    error, data = fetch_guild_bot_data(guild_id)
+    if error:
+        return render_template("moderation.html", error=error, guild=guild, user=user, guilds=admin_guilds)
+
+    try:
+        warnings_response = requests.get(
+            f"{BOT_API_URL}/api/guilds/{guild_id}/warnings",
+            headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
+            timeout=5,
+        )
+        warnings = warnings_response.json().get("warnings", [])
+    except requests.RequestException:
+        return render_template("moderation.html", error="unreachable", guild=guild, user=user, guilds=admin_guilds)
+
+    return render_template(
+        "moderation.html",
+        active="moderation",
+        guild=guild,
+        user=user,
+        guilds=admin_guilds,
+        channels=data["channels"],
+        config=data["config"],
+        warnings=warnings,
+        message=request.args.get("message"),
+    )
+
+
+@app.route("/server/<guild_id>/mod-log-channel", methods=["POST"])
+@login_required
+def set_mod_log_channel(guild_id):
+    discord_session = make_discord_session(token=session["oauth_token"])
+    if get_admin_guild_or_none(discord_session, guild_id) is None:
+        return render_template("moderation.html", error="access"), 403
+
+    channel_id = request.form.get("channel_id", "").strip()
+    try:
+        response = requests.post(
+            f"{BOT_API_URL}/api/guilds/{guild_id}/mod-log-channel",
+            json={"channel_id": channel_id},
+            headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
+            timeout=5,
+        )
+        message = "Mod-Log-Channel gespeichert." if response.ok else response.json().get("error", "Fehler beim Speichern.")
+    except requests.RequestException:
+        message = "Der Bot ist über die interne API aktuell nicht erreichbar."
+
+    return redirect(url_for("moderation_page", guild_id=guild_id, message=message))
+
+
+@app.route("/server/<guild_id>/warnings/<warning_id>/delete", methods=["POST"])
+@login_required
+def delete_warning(guild_id, warning_id):
+    discord_session = make_discord_session(token=session["oauth_token"])
+    if get_admin_guild_or_none(discord_session, guild_id) is None:
+        return render_template("moderation.html", error="access"), 403
+
+    try:
+        response = requests.post(
+            f"{BOT_API_URL}/api/guilds/{guild_id}/warnings/{warning_id}/delete",
+            headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
+            timeout=5,
+        )
+        message = "Verwarnung gelöscht." if response.ok else response.json().get("error", "Fehler beim Löschen.")
+    except requests.RequestException:
+        message = "Der Bot ist über die interne API aktuell nicht erreichbar."
+
+    return redirect(url_for("moderation_page", guild_id=guild_id, message=message))
+
+
 @app.route("/server/<guild_id>/welcome-channel", methods=["POST"])
 @login_required
 def set_welcome_channel(guild_id):

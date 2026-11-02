@@ -153,8 +153,54 @@ Kein Git-Repo bisher initialisiert (`git init` wurde nie ausgeführt).
   `unset_welcome_channel()`/`unset_auto_role()`-Funktionen in `database/db.py` ergänzen und
   die Bot-API-Endpunkte einen leeren Wert als "löschen" behandeln lassen.
 
+### 7. Moderation (`cogs/moderation.py`)
+- Klassische manuelle Mod-Befehle, bewusst **getrennt von AutoMod** (`cogs/automod.py`
+  bleibt für automatische Link-/Spam-Erkennung zuständig; `moderation.py` für Aktionen, die
+  ein Mod gezielt auslöst):
+  - `/kick`, `/ban` (mit `delete_message_days`), `/unban` (per User-ID, da gebannte Nutzer
+    keine `Member`-Objekte mehr sind — daher `discord.Object(id=...)`)
+  - `/timeout` / `/untimeout` — Dauer als String (`10m`, `2h`, `1d`, max. 28 Tage gemäß
+    Discord-Limit), geparst von `parse_duration()` (reine Zahl = Minuten, Suffixe
+    `s/m/h/d/w`)
+  - `/warn`, `/warnings`, `/clearwarnings` — Verwarnungen werden persistent in der neuen
+    `warnings`-Tabelle gespeichert (siehe Punkt 5), nicht nur als DM/Log-Eintrag
+  - `/clear` — Bulk-Delete der letzten 1-100 Nachrichten im aktuellen Channel
+    (`channel.purge()`)
+- Alle Aktionen loggen ins **gleiche** `mod_log_channel_id` wie AutoMod (gemeinsame Config-
+  Spalte, siehe Punkt 5) — `moderation.py` hat dafür eine eigene Kopie von
+  `_get_log_channel()`/`_log()` (bewusst dupliziert statt einer gemeinsamen Hilfsdatei, da
+  es nur zwei Stellen sind und beide Cogs sonst unabhängig bleiben sollen).
+- Jede Aktion versucht zusätzlich eine DM an den betroffenen Nutzer (best-effort, `discord.
+  Forbidden` wird verschluckt, gleiches Muster wie in `automod.py`/`welcome.py`).
+- Berechtigungen sind granular nach Discord-Permission gewählt: `kick_members` für `/kick`,
+  `ban_members` für `/ban`/`/unban`, `moderate_members` für `/timeout`/`/untimeout`/`/warn`/
+  `/warnings`/`/clearwarnings`, `manage_messages` für `/clear`.
+- **Bekannte Lücke:** Es gibt keine eigene Rollenhierarchie-Prüfung auf Höhe des
+  *ausführenden* Mods (Discord prüft bei Bot-Aktionen nur die Rollenhöhe des **Bots**, nicht
+  die des Slash-Command-Nutzers) — ein Mod mit `kick_members` könnte daher theoretisch
+  jemanden kicken lassen, den er selbst in der Discord-UI nicht kicken dürfte, solange der
+  Bot selbst die nötige Rollenhöhe hat. Für ein Homelab-Setup bewusst nicht weiter
+  eingeschränkt; falls gewünscht, ließe sich das analog zur `_is_assignable_role()`-Logik in
+  `internal_api.py`/`autorole.py` ergänzen.
+- **Dashboard-Seite** `/server/<guild_id>/moderation` (`moderation.html`) zeigt/ändert den
+  Mod-Log-Channel (gleiches `<select>`-Pattern wie Willkommens-Channel) und listet alle
+  Verwarnungen des Servers mit Lösch-Button pro Zeile. Die eigentlichen Mod-Aktionen
+  (Kick/Ban/Timeout/Warn) laufen bewusst **nur** über Slash-Commands in Discord (nicht übers
+  Dashboard), damit Moderation dort passiert, wo das Fehlverhalten auftritt — das Dashboard
+  dient hier nur der Konfiguration und der Einsicht/Aufräumen der Verwarnungs-Historie,
+  analog zum Muster bei TempVoice (Dashboard konfiguriert, der Bot führt aus).
+- Neue Bot-API-Endpunkte in `cogs/internal_api.py`: `POST .../mod-log-channel`,
+  `GET .../warnings` (inkl. aufgelöster Anzeigenamen über `guild.get_member()`/
+  `bot.get_user()`, Fallback `"Unbekannter Nutzer (<id>)"` falls der Nutzer nicht im Cache
+  ist), `POST .../warnings/<id>/delete`. `GET .../config` liefert jetzt zusätzlich
+  `mod_log_channel_id`.
+
 ### 5. Datenbank (`database/db.py`)
 - Eine Tabelle `guild_config (guild_id PK, welcome_channel_id, auto_role_id)`.
+- Zusätzlich eine eigene Tabelle `warnings (id PK AUTOINCREMENT, guild_id, user_id,
+  moderator_id, reason, created_at)` für die `/warn`-Historie (siehe Punkt 7) — bewusst
+  keine Spalte in `guild_config`, da es sich um n:1-Daten pro Server handelt (viele
+  Verwarnungen pro Guild), nicht um eine einzelne Konfigurationseinstellung.
 - `init_db()` erstellt die Tabelle und migriert fehlende Spalten automatisch
   (`_column_exists` + `ALTER TABLE ... ADD COLUMN`), damit bestehende DB-Dateien beim
   Hinzufügen neuer Spalten nicht brechen. Bei künftigen neuen Spalten dieses Muster

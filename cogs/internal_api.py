@@ -68,6 +68,9 @@ class InternalAPI(commands.Cog):
         app.router.add_post("/api/guilds/{guild_id}/autorole", self._handle_set_autorole)
         app.router.add_post("/api/guilds/{guild_id}/tempvoice-channels", self._handle_set_tempvoice_channels)
         app.router.add_post("/api/guilds/{guild_id}/send-embed", self._handle_send_embed)
+        app.router.add_post("/api/guilds/{guild_id}/mod-log-channel", self._handle_set_mod_log_channel)
+        app.router.add_get("/api/guilds/{guild_id}/warnings", self._handle_get_warnings)
+        app.router.add_post("/api/guilds/{guild_id}/warnings/{warning_id}/delete", self._handle_delete_warning)
 
         self.runner = web.AppRunner(app)
         await self.runner.setup()
@@ -145,11 +148,13 @@ class InternalAPI(commands.Cog):
         welcome_channel_id = await db.get_welcome_channel(guild.id)
         auto_role_id = await db.get_auto_role(guild.id)
         tempvoice_channel_ids = await db.get_tempvoice_creator_channels(guild.id)
+        mod_log_channel_id = await db.get_mod_log_channel(guild.id)
         return web.json_response(
             {
                 "welcome_channel_id": str(welcome_channel_id) if welcome_channel_id else None,
                 "auto_role_id": str(auto_role_id) if auto_role_id else None,
                 "tempvoice_channel_ids": [str(channel_id) for channel_id in tempvoice_channel_ids],
+                "mod_log_channel_id": str(mod_log_channel_id) if mod_log_channel_id else None,
             }
         )
 
@@ -214,6 +219,68 @@ class InternalAPI(commands.Cog):
                 )
 
         await db.set_tempvoice_creator_channels(guild.id, channel_ids)
+        return web.json_response({"status": "ok"})
+
+    async def _handle_set_mod_log_channel(self, request: web.Request) -> web.Response:
+        guild = self._get_guild(request)
+        if guild is None:
+            return web.json_response({"error": "Bot ist auf diesem Server nicht vorhanden"}, status=404)
+
+        try:
+            payload = await request.json()
+            channel_id = int(payload["channel_id"])
+        except (ValueError, KeyError, TypeError):
+            return web.json_response({"error": "channel_id fehlt oder ist ungültig"}, status=400)
+
+        channel = guild.get_channel(channel_id)
+        if not isinstance(channel, discord.TextChannel):
+            return web.json_response({"error": "Channel gehört nicht zu diesem Server oder ist kein Textchannel"}, status=404)
+
+        await db.set_mod_log_channel(guild.id, channel.id)
+        return web.json_response({"status": "ok"})
+
+    def _resolve_display_name(self, guild: discord.Guild, user_id: int) -> str:
+        member = guild.get_member(user_id)
+        if member is not None:
+            return str(member)
+        user = self.bot.get_user(user_id)
+        if user is not None:
+            return str(user)
+        return f"Unbekannter Nutzer ({user_id})"
+
+    async def _handle_get_warnings(self, request: web.Request) -> web.Response:
+        guild = self._get_guild(request)
+        if guild is None:
+            return web.json_response({"error": "Bot ist auf diesem Server nicht vorhanden"}, status=404)
+
+        entries = await db.get_warnings(guild.id)
+        warnings = [
+            {
+                "id": entry["id"],
+                "user_id": str(entry["user_id"]),
+                "user_display": self._resolve_display_name(guild, entry["user_id"]),
+                "moderator_id": str(entry["moderator_id"]),
+                "moderator_display": self._resolve_display_name(guild, entry["moderator_id"]),
+                "reason": entry["reason"],
+                "created_at": entry["created_at"],
+            }
+            for entry in entries
+        ]
+        return web.json_response({"warnings": warnings})
+
+    async def _handle_delete_warning(self, request: web.Request) -> web.Response:
+        guild = self._get_guild(request)
+        if guild is None:
+            return web.json_response({"error": "Bot ist auf diesem Server nicht vorhanden"}, status=404)
+
+        try:
+            warning_id = int(request.match_info["warning_id"])
+        except ValueError:
+            return web.json_response({"error": "Ungültige Warning-ID"}, status=400)
+
+        deleted = await db.delete_warning(guild.id, warning_id)
+        if not deleted:
+            return web.json_response({"error": "Verwarnung nicht gefunden"}, status=404)
         return web.json_response({"status": "ok"})
 
     @staticmethod

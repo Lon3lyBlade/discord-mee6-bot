@@ -41,6 +41,18 @@ async def init_db() -> None:
             )
             """
         )
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS warnings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                moderator_id INTEGER NOT NULL,
+                reason TEXT,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
         await db.commit()
 
 
@@ -130,3 +142,58 @@ async def get_mod_log_channel(guild_id: int) -> int | None:
         ) as cursor:
             row = await cursor.fetchone()
             return row[0] if row else None
+
+
+async def add_warning(guild_id: int, user_id: int, moderator_id: int, reason: str) -> int:
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            """
+            INSERT INTO warnings (guild_id, user_id, moderator_id, reason, created_at)
+            VALUES (?, ?, ?, ?, datetime('now'))
+            """,
+            (guild_id, user_id, moderator_id, reason),
+        )
+        await db.commit()
+        return cursor.lastrowid
+
+
+async def get_warnings(guild_id: int, user_id: int | None = None) -> list[dict]:
+    query = "SELECT id, user_id, moderator_id, reason, created_at FROM warnings WHERE guild_id = ?"
+    params: list[int] = [guild_id]
+    if user_id is not None:
+        query += " AND user_id = ?"
+        params.append(user_id)
+    query += " ORDER BY id DESC"
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(query, params) as cursor:
+            return [
+                {
+                    "id": row[0],
+                    "user_id": row[1],
+                    "moderator_id": row[2],
+                    "reason": row[3],
+                    "created_at": row[4],
+                }
+                async for row in cursor
+            ]
+
+
+async def delete_warning(guild_id: int, warning_id: int) -> bool:
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            "DELETE FROM warnings WHERE guild_id = ? AND id = ?",
+            (guild_id, warning_id),
+        )
+        await db.commit()
+        return cursor.rowcount > 0
+
+
+async def clear_warnings(guild_id: int, user_id: int) -> int:
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            "DELETE FROM warnings WHERE guild_id = ? AND user_id = ?",
+            (guild_id, user_id),
+        )
+        await db.commit()
+        return cursor.rowcount
