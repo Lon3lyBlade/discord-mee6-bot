@@ -1,0 +1,42 @@
+name: Docker-Image bauen und veröffentlichen
+
+# Baut bei jedem Push auf master das Docker-Image und lädt es in die GitHub Container
+# Registry (ghcr.io) hoch. Unraid erkennt darüber automatisch, wenn eine neuere Version
+# verfügbar ist ("Update Ready"-Button im Docker-Tab), ohne dass das Image lokal auf
+# Unraid gebaut werden muss.
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/discord-mee6-bot
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Code auschecken
+        uses: actions/checkout@v4
+
+      - name: Bei GitHub Container Registry anmelden
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image-Namen klein schreiben
+        run: echo "IMAGE_NAME=${IMAGE_NAME,,}" >> "$GITHUB_ENV"
+
+      - name: Image bauen und pushen
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}

@@ -1,6 +1,22 @@
 #!/usr/bin/env bash
-# Deployt den Discord-Bot (Bot + Flask-Dashboard) auf den Unraid-Server "Tower".
+# Aktualisiert den Discord-Bot (Bot + Flask-Dashboard) auf dem Unraid-Server "Tower".
 # Ausführen auf dem Laptop (im LAN) im Projektordner:  bash deploy.sh
+#
+# Das Image wird nicht mehr auf Unraid gebaut. Stattdessen baut GitHub Actions bei
+# jedem Push auf master automatisch ein Docker-Image und lädt es in die GitHub
+# Container Registry (ghcr.io) hoch (siehe .github/workflows/docker-publish.yml).
+# Unraids Docker-Tab erkennt darüber von sich aus, wenn eine neue Version bereitsteht
+# ("Update Ready"-Button) - dieses Skript holt das neueste Image zusätzlich sofort,
+# falls du nicht auf Unraids automatischen Check warten willst.
+#
+# Einmalige Einrichtung (das GitHub-Package ist privat, Unraid braucht also einen
+# eigenen Zugang zur Registry):
+#   1. Auf https://github.com/settings/tokens ein "Personal access token (classic)"
+#      mit Scope "read:packages" erstellen.
+#   2. Auf Unraid per SSH einmalig einloggen:
+#        docker login ghcr.io -u Lon3lyBlade
+#      (Token als Passwort einfügen, wenn danach gefragt wird - NICHT in die Kommandozeile
+#      schreiben, damit es nicht in der Shell-History/Prozessliste landet.)
 # Voraussetzung: SSH auf Unraid aktiv, lokale .env ausgefüllt (Kopie von .env.example).
 set -euo pipefail
 
@@ -8,7 +24,7 @@ UNRAID_HOST="${UNRAID_HOST:-192.168.178.41}"
 UNRAID_USER="${UNRAID_USER:-root}"
 REMOTE_DIR="${REMOTE_DIR:-/mnt/user/appdata/discord-bot-dashboard}"
 CONTAINER="${CONTAINER:-discord-bot-dashboard}"
-IMAGE="${IMAGE:-discord-bot-dashboard}"
+IMAGE="${IMAGE:-ghcr.io/lon3lyblade/discord-mee6-bot:latest}"
 HOST_PORT="${HOST_PORT:-5001}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -35,17 +51,19 @@ if [[ -n "$BLOCKER" ]]; then
   exit 1
 fi
 
-echo "==> Lade Projekt nach ${REMOTE_DIR} hoch (data/ bleibt unangetastet) ..."
+echo "==> Kopiere lokale .env nach Unraid ..."
 $SSH "mkdir -p '${REMOTE_DIR}/data'"
-tar czf - -C "$SCRIPT_DIR" \
-  --exclude='./.git' --exclude='./data' --exclude='./.venv' \
-  --exclude='__pycache__' --exclude='*.pyc' --exclude='./deploy.sh' . \
-  | $SSH "tar xzf - -C '${REMOTE_DIR}' && chmod 600 '${REMOTE_DIR}/.env'"
+scp "$SCRIPT_DIR/.env" "${UNRAID_USER}@${UNRAID_HOST}:${REMOTE_DIR}/.env"
+$SSH "chmod 600 '${REMOTE_DIR}/.env'"
 
-echo "==> Baue Docker-Image ..."
-$SSH "cd '${REMOTE_DIR}' && docker build -t '${IMAGE}' ."
+echo "==> Hole neuestes Image von der GitHub Container Registry ..."
+$SSH "docker pull '${IMAGE}'" || {
+  echo "FEHLER: 'docker pull' fehlgeschlagen. Falls das Package privat ist, einmalig auf"
+  echo "Unraid einloggen:  docker login ghcr.io -u Lon3lyBlade"
+  exit 1
+}
 
-echo "==> Starte Container ${CONTAINER} ..."
+echo "==> Starte Container ${CONTAINER} neu ..."
 $SSH "docker rm -f '${CONTAINER}' >/dev/null 2>&1 || true; \
   docker run -d --name '${CONTAINER}' --restart unless-stopped \
     --env-file '${REMOTE_DIR}/.env' \
