@@ -107,31 +107,35 @@ def callback():
     return redirect(url_for("dashboard"))
 
 
+def get_admin_guilds(discord_session) -> list[dict]:
+    guilds = discord_session.get(f"{API_BASE_URL}/users/@me/guilds").json()
+    return [guild for guild in guilds if is_admin_guild(guild)]
+
+
+def get_admin_guild_or_none(discord_session, guild_id: str) -> dict | None:
+    for guild in get_admin_guilds(discord_session):
+        if guild["id"] == guild_id:
+            return guild
+    return None
+
+
 @app.route("/dashboard")
 @login_required
 def dashboard():
     discord_session = make_discord_session(token=session["oauth_token"])
     user = discord_session.get(f"{API_BASE_URL}/users/@me").json()
-    guilds = discord_session.get(f"{API_BASE_URL}/users/@me/guilds").json()
-
-    admin_guilds = [guild for guild in guilds if is_admin_guild(guild)]
+    admin_guilds = get_admin_guilds(discord_session)
 
     return render_template("dashboard.html", user=user, guilds=admin_guilds)
-
-
-def get_admin_guild_or_none(discord_session, guild_id: str) -> dict | None:
-    guilds = discord_session.get(f"{API_BASE_URL}/users/@me/guilds").json()
-    for guild in guilds:
-        if guild["id"] == guild_id and is_admin_guild(guild):
-            return guild
-    return None
 
 
 @app.route("/server/<guild_id>")
 @login_required
 def server_detail(guild_id):
     discord_session = make_discord_session(token=session["oauth_token"])
-    guild = get_admin_guild_or_none(discord_session, guild_id)
+    user = discord_session.get(f"{API_BASE_URL}/users/@me").json()
+    admin_guilds = get_admin_guilds(discord_session)
+    guild = next((g for g in admin_guilds if g["id"] == guild_id), None)
     if guild is None:
         return render_template("server.html", error="access"), 403
 
@@ -142,8 +146,9 @@ def server_detail(guild_id):
             timeout=5,
         )
         if bot_guild.status_code == 404:
-            return render_template("server.html", error="not_in_guild", guild=guild)
+            return render_template("server.html", error="not_in_guild", guild=guild, user=user, guilds=admin_guilds)
         bot_guild.raise_for_status()
+        stats = bot_guild.json()
 
         channels = requests.get(
             f"{BOT_API_URL}/api/guilds/{guild_id}/channels",
@@ -161,11 +166,14 @@ def server_detail(guild_id):
             timeout=5,
         ).json()
     except requests.RequestException:
-        return render_template("server.html", error="unreachable", guild=guild)
+        return render_template("server.html", error="unreachable", guild=guild, user=user, guilds=admin_guilds)
 
     return render_template(
         "server.html",
         guild=guild,
+        user=user,
+        guilds=admin_guilds,
+        stats=stats,
         channels=channels,
         roles=roles,
         config=config,

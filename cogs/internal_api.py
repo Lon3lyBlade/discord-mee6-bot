@@ -101,7 +101,15 @@ class InternalAPI(commands.Cog):
         guild = self._get_guild(request)
         if guild is None:
             return web.json_response({"error": "Bot ist auf diesem Server nicht vorhanden"}, status=404)
-        return web.json_response({"id": str(guild.id), "name": guild.name})
+        return web.json_response(
+            {
+                "id": str(guild.id),
+                "name": guild.name,
+                "member_count": guild.member_count,
+                "text_channel_count": len(guild.text_channels),
+                "voice_channel_count": len(guild.voice_channels),
+            }
+        )
 
     async def _handle_get_channels(self, request: web.Request) -> web.Response:
         guild = self._get_guild(request)

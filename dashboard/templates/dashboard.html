@@ -6,60 +6,74 @@
     <title>Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen">
+<body class="bg-[#0f172a] text-slate-100 min-h-screen">
 
-    <nav class="bg-slate-800/80 border-b border-slate-700 px-6 py-4 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-            <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center font-bold text-sm">B</div>
-            <span class="font-semibold text-lg">Bot Dashboard</span>
-        </div>
-        <div class="flex items-center gap-4">
-            <div class="flex items-center gap-2">
-                {% if user.avatar %}
-                    <img src="https://cdn.discordapp.com/avatars/{{ user.id }}/{{ user.avatar }}.png"
-                         alt="{{ user.username }}" class="w-8 h-8 rounded-full">
-                {% else %}
-                    <div class="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-xs">
-                        {{ user.username[0] | upper }}
-                    </div>
-                {% endif %}
-                <span class="text-sm text-slate-300">{{ user.username }}</span>
-            </div>
-            <a href="{{ url_for('logout') }}"
-               class="text-sm text-slate-400 hover:text-white transition-colors">Logout</a>
-        </div>
-    </nav>
+    <div class="flex min-h-screen">
+        {% set active = 'dashboard' %}
+        {% include "_sidebar.html" %}
 
-    <main class="max-w-5xl mx-auto px-6 py-10">
-        <h1 class="text-2xl font-bold mb-1">Deine Server</h1>
-        <p class="text-slate-400 mb-8">Server, auf denen du Administratorrechte besitzt.</p>
-
-        {% if guilds %}
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {% for guild in guilds %}
-                    <div class="bg-slate-800 rounded-2xl p-5 flex flex-col items-center text-center shadow-lg hover:shadow-indigo-500/10 hover:-translate-y-0.5 transition-all">
-                        {% if guild.icon %}
-                            <img src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png"
-                                 alt="{{ guild.name }}" class="w-16 h-16 rounded-full mb-4">
+        <div class="flex-1 flex flex-col min-w-0">
+            <header class="h-16 border-b border-slate-800 bg-[#0f172a]/80 backdrop-blur px-4 md:px-6 flex items-center justify-between gap-4">
+                <div class="flex items-center gap-2 min-w-0">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center font-bold text-sm shrink-0 md:hidden">B</div>
+                    <h1 class="font-semibold truncate">Deine Server</h1>
+                </div>
+                <div class="flex items-center gap-4 shrink-0">
+                    <div class="flex items-center gap-2">
+                        {% if user.avatar %}
+                            <img src="https://cdn.discordapp.com/avatars/{{ user.id }}/{{ user.avatar }}.png"
+                                 alt="{{ user.username }}" class="w-8 h-8 rounded-full ring-2 ring-slate-800">
                         {% else %}
-                            <div class="w-16 h-16 rounded-full bg-indigo-600 flex items-center justify-center text-xl font-bold mb-4">
-                                {{ guild.name[0] | upper }}
+                            <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs">
+                                {{ user.username[0] | upper }}
                             </div>
                         {% endif %}
-                        <h2 class="font-semibold mb-4 truncate w-full">{{ guild.name }}</h2>
-                        <a href="{{ url_for('server_detail', guild_id=guild.id) }}"
-                           class="w-full bg-indigo-600 hover:bg-indigo-500 transition-colors text-white text-sm font-semibold py-2 rounded-lg block">
-                            Verwalten
-                        </a>
+                        <span class="text-sm text-slate-300 hidden sm:inline">{{ user.username }}</span>
                     </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="bg-slate-800 rounded-2xl p-10 text-center text-slate-400">
-                Du hast auf keinem Server Administratorrechte.
-            </div>
-        {% endif %}
-    </main>
+                    <a href="{{ url_for('logout') }}"
+                       class="text-sm text-slate-400 hover:text-white transition-colors">Logout</a>
+                </div>
+            </header>
+
+            <main class="flex-1 px-4 md:px-8 py-10 max-w-6xl w-full mx-auto">
+                <h2 class="text-2xl font-bold mb-1">Deine Server</h2>
+                <p class="text-slate-400 mb-8">Server, auf denen du Administratorrechte besitzt.</p>
+
+                {% if guilds %}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {% for guild in guilds %}
+                            <div class="relative rounded-xl border border-slate-800 bg-[#1e293b] p-5 flex flex-col items-center text-center shadow-lg hover:shadow-indigo-500/10 hover:-translate-y-0.5 transition-all overflow-hidden">
+                                <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
+                                <div class="relative">
+                                    {% if guild.icon %}
+                                        <img src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png"
+                                             alt="{{ guild.name }}" class="w-16 h-16 rounded-full mb-4 ring-2 ring-slate-800">
+                                    {% else %}
+                                        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-xl font-bold mb-4">
+                                            {{ guild.name[0] | upper }}
+                                        </div>
+                                    {% endif %}
+                                    <h3 class="font-semibold mb-4 truncate w-full">{{ guild.name }}</h3>
+                                    <a href="{{ url_for('server_detail', guild_id=guild.id) }}"
+                                       class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:brightness-110 transition-all text-white text-sm font-semibold py-2 rounded-lg">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                        Verwalten
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="rounded-xl border border-slate-800 bg-[#1e293b] p-10 text-center text-slate-400">
+                        Du hast auf keinem Server Administratorrechte.
+                    </div>
+                {% endif %}
+            </main>
+        </div>
+    </div>
 
 </body>
 </html>
