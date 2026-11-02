@@ -155,6 +155,11 @@ def server_detail(guild_id):
             headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
             timeout=5,
         ).json()["channels"]
+        voice_channels = requests.get(
+            f"{BOT_API_URL}/api/guilds/{guild_id}/voice-channels",
+            headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
+            timeout=5,
+        ).json()["channels"]
         roles = requests.get(
             f"{BOT_API_URL}/api/guilds/{guild_id}/roles",
             headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
@@ -175,6 +180,7 @@ def server_detail(guild_id):
         guilds=admin_guilds,
         stats=stats,
         channels=channels,
+        voice_channels=voice_channels,
         roles=roles,
         config=config,
         message=request.args.get("message"),
@@ -219,6 +225,28 @@ def set_autorole(guild_id):
             timeout=5,
         )
         message = "AutoRole gespeichert." if response.ok else response.json().get("error", "Fehler beim Speichern.")
+    except requests.RequestException:
+        message = "Der Bot ist über die interne API aktuell nicht erreichbar."
+
+    return redirect(url_for("server_detail", guild_id=guild_id, message=message))
+
+
+@app.route("/server/<guild_id>/tempvoice-channels", methods=["POST"])
+@login_required
+def set_tempvoice_channels(guild_id):
+    discord_session = make_discord_session(token=session["oauth_token"])
+    if get_admin_guild_or_none(discord_session, guild_id) is None:
+        return render_template("server.html", error="access"), 403
+
+    channel_ids = [cid for cid in request.form.getlist("channel_ids") if cid.isdigit()]
+    try:
+        response = requests.post(
+            f"{BOT_API_URL}/api/guilds/{guild_id}/tempvoice-channels",
+            json={"channel_ids": channel_ids},
+            headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
+            timeout=5,
+        )
+        message = "Tempvoice-Kanäle gespeichert." if response.ok else response.json().get("error", "Fehler beim Speichern.")
     except requests.RequestException:
         message = "Der Bot ist über die interne API aktuell nicht erreichbar."
 

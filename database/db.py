@@ -32,11 +32,15 @@ async def init_db() -> None:
         # Migration für Datenbanken, die vor Einführung von mod_log_channel_id angelegt wurden.
         if not await _column_exists(db, "guild_config", "mod_log_channel_id"):
             await db.execute("ALTER TABLE guild_config ADD COLUMN mod_log_channel_id INTEGER")
-        # Migration für Datenbanken, die vor Einführung der Tempvoice-Spalten angelegt wurden.
-        if not await _column_exists(db, "guild_config", "tempvoice_creator_channel_id"):
-            await db.execute("ALTER TABLE guild_config ADD COLUMN tempvoice_creator_channel_id INTEGER")
-        if not await _column_exists(db, "guild_config", "tempvoice_category_id"):
-            await db.execute("ALTER TABLE guild_config ADD COLUMN tempvoice_category_id INTEGER")
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS tempvoice_creator_channels (
+                guild_id INTEGER NOT NULL,
+                channel_id INTEGER NOT NULL,
+                PRIMARY KEY (guild_id, channel_id)
+            )
+            """
+        )
         await db.commit()
 
 
@@ -86,29 +90,23 @@ async def get_auto_role(guild_id: int) -> int | None:
             return row[0] if row else None
 
 
-async def set_tempvoice_config(guild_id: int, creator_channel_id: int, category_id: int) -> None:
+async def set_tempvoice_creator_channels(guild_id: int, channel_ids: list[int]) -> None:
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
-            """
-            INSERT INTO guild_config (guild_id, tempvoice_creator_channel_id, tempvoice_category_id)
-            VALUES (?, ?, ?)
-            ON CONFLICT(guild_id) DO UPDATE SET
-                tempvoice_creator_channel_id = excluded.tempvoice_creator_channel_id,
-                tempvoice_category_id = excluded.tempvoice_category_id
-            """,
-            (guild_id, creator_channel_id, category_id),
+        await db.execute("DELETE FROM tempvoice_creator_channels WHERE guild_id = ?", (guild_id,))
+        await db.executemany(
+            "INSERT INTO tempvoice_creator_channels (guild_id, channel_id) VALUES (?, ?)",
+            [(guild_id, channel_id) for channel_id in channel_ids],
         )
         await db.commit()
 
 
-async def get_tempvoice_config(guild_id: int) -> tuple[int | None, int | None]:
+async def get_tempvoice_creator_channels(guild_id: int) -> list[int]:
     async with aiosqlite.connect(DB_PATH) as db:
         async with db.execute(
-            "SELECT tempvoice_creator_channel_id, tempvoice_category_id FROM guild_config WHERE guild_id = ?",
+            "SELECT channel_id FROM tempvoice_creator_channels WHERE guild_id = ?",
             (guild_id,),
         ) as cursor:
-            row = await cursor.fetchone()
-            return (row[0], row[1]) if row else (None, None)
+            return [row[0] async for row in cursor]
 
 
 async def set_mod_log_channel(guild_id: int, channel_id: int) -> None:

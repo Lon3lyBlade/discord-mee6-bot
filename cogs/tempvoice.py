@@ -1,5 +1,4 @@
 import discord
-from discord import app_commands
 from discord.ext import commands
 
 from database import db
@@ -16,34 +15,40 @@ class TempVoice(commands.Cog):
         before: discord.VoiceState,
         after: discord.VoiceState,
     ) -> None:
-        creator_channel_id, category_id = await db.get_tempvoice_config(member.guild.id)
-        if creator_channel_id is None:
+        creator_channel_ids = await db.get_tempvoice_creator_channels(member.guild.id)
+        if not creator_channel_ids:
             return
 
-        if after.channel is not None and after.channel.id == creator_channel_id:
-            await self._create_temp_channel(member, after.channel, category_id)
+        if after.channel is not None and after.channel.id in creator_channel_ids:
+            await self._create_temp_channel(member, after.channel)
 
         if (
             before.channel is not None
-            and before.channel.id != creator_channel_id
-            and before.channel.category_id == category_id
+            and before.channel.id not in creator_channel_ids
             and len(before.channel.members) == 0
+            and self._is_managed_category(member.guild, before.channel, creator_channel_ids)
         ):
             try:
                 await before.channel.delete(reason="Temporärer Sprachkanal ist leer")
             except (discord.Forbidden, discord.NotFound, discord.HTTPException):
                 pass
 
-    async def _create_temp_channel(
-        self,
-        member: discord.Member,
-        creator_channel: discord.VoiceChannel,
-        category_id: int | None,
-    ) -> None:
-        category = member.guild.get_channel(category_id) if category_id else creator_channel.category
-        if not isinstance(category, discord.CategoryChannel):
-            category = creator_channel.category
+    @staticmethod
+    def _is_managed_category(
+        guild: discord.Guild, channel: discord.VoiceChannel, creator_channel_ids: list[int]
+    ) -> bool:
+        # Ein verlassener Kanal gilt nur dann als "unserer", wenn er in derselben Kategorie
+        # liegt wie einer der aktuell konfigurierten Ersteller-Kanäle - sonst würden fremde,
+        # leere Voice-Channels in anderen Kategorien fälschlich gelöscht.
+        for creator_id in creator_channel_ids:
+            creator_channel = guild.get_channel(creator_id)
+            if creator_channel is not None and creator_channel.category_id == channel.category_id:
+                return True
+        return False
 
+    async def _create_temp_channel(
+        self, member: discord.Member, creator_channel: discord.VoiceChannel
+    ) -> None:
         overwrites = {
             member: discord.PermissionOverwrite(manage_channels=True, move_members=True),
         }
@@ -51,47 +56,13 @@ class TempVoice(commands.Cog):
         try:
             new_channel = await member.guild.create_voice_channel(
                 name=f"🔊 | {member.display_name}'s Lounge",
-                category=category,
+                category=creator_channel.category,
                 overwrites=overwrites,
                 reason=f"Temporärer Sprachkanal für {member}",
             )
             await member.move_to(new_channel, reason="Temporärer Sprachkanal erstellt")
         except (discord.Forbidden, discord.HTTPException):
             pass
-
-    @app_commands.command(
-        name="set-tempvoice",
-        description="Richtet temporäre Sprachkanäle ein: Ersteller-Kanal und Ziel-Kategorie.",
-    )
-    @app_commands.describe(
-        creator_channel="Der Sprachkanal, dem Nutzer beitreten, um einen eigenen Kanal zu erstellen.",
-        category="Die Kategorie, in der die temporären Kanäle erstellt werden.",
-    )
-    @app_commands.checks.has_permissions(manage_guild=True)
-    @app_commands.guild_only()
-    async def set_tempvoice(
-        self,
-        interaction: discord.Interaction,
-        creator_channel: discord.VoiceChannel,
-        category: discord.CategoryChannel,
-    ) -> None:
-        await db.set_tempvoice_config(interaction.guild_id, creator_channel.id, category.id)
-        await interaction.response.send_message(
-            f"Temporäre Sprachkanäle eingerichtet: Beitritt zu {creator_channel.mention} erstellt "
-            f"automatisch einen neuen Kanal in der Kategorie **{category.name}**.",
-            ephemeral=True,
-        )
-
-    @set_tempvoice.error
-    async def on_command_error(
-        self, interaction: discord.Interaction, error: app_commands.AppCommandError
-    ) -> None:
-        if isinstance(error, app_commands.MissingPermissions):
-            await interaction.response.send_message(
-                "Dafür benötigst du die Berechtigung **Server verwalten**.", ephemeral=True
-            )
-        else:
-            raise error
 
 
 async def setup(bot: commands.Bot) -> None:

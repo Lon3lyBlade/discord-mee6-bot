@@ -61,10 +61,12 @@ class InternalAPI(commands.Cog):
         app = web.Application(middlewares=[self._auth_middleware], client_max_size=10 * 1024 * 1024)
         app.router.add_get("/api/guilds/{guild_id}", self._handle_get_guild)
         app.router.add_get("/api/guilds/{guild_id}/channels", self._handle_get_channels)
+        app.router.add_get("/api/guilds/{guild_id}/voice-channels", self._handle_get_voice_channels)
         app.router.add_get("/api/guilds/{guild_id}/roles", self._handle_get_roles)
         app.router.add_get("/api/guilds/{guild_id}/config", self._handle_get_config)
         app.router.add_post("/api/guilds/{guild_id}/welcome-channel", self._handle_set_welcome_channel)
         app.router.add_post("/api/guilds/{guild_id}/autorole", self._handle_set_autorole)
+        app.router.add_post("/api/guilds/{guild_id}/tempvoice-channels", self._handle_set_tempvoice_channels)
         app.router.add_post("/api/guilds/{guild_id}/send-embed", self._handle_send_embed)
 
         self.runner = web.AppRunner(app)
@@ -118,6 +120,13 @@ class InternalAPI(commands.Cog):
         channels = [{"id": str(c.id), "name": c.name} for c in guild.text_channels]
         return web.json_response({"channels": channels})
 
+    async def _handle_get_voice_channels(self, request: web.Request) -> web.Response:
+        guild = self._get_guild(request)
+        if guild is None:
+            return web.json_response({"error": "Bot ist auf diesem Server nicht vorhanden"}, status=404)
+        channels = [{"id": str(c.id), "name": c.name} for c in guild.voice_channels]
+        return web.json_response({"channels": channels})
+
     async def _handle_get_roles(self, request: web.Request) -> web.Response:
         guild = self._get_guild(request)
         if guild is None:
@@ -135,10 +144,12 @@ class InternalAPI(commands.Cog):
             return web.json_response({"error": "Bot ist auf diesem Server nicht vorhanden"}, status=404)
         welcome_channel_id = await db.get_welcome_channel(guild.id)
         auto_role_id = await db.get_auto_role(guild.id)
+        tempvoice_channel_ids = await db.get_tempvoice_creator_channels(guild.id)
         return web.json_response(
             {
                 "welcome_channel_id": str(welcome_channel_id) if welcome_channel_id else None,
                 "auto_role_id": str(auto_role_id) if auto_role_id else None,
+                "tempvoice_channel_ids": [str(channel_id) for channel_id in tempvoice_channel_ids],
             }
         )
 
@@ -181,6 +192,28 @@ class InternalAPI(commands.Cog):
             )
 
         await db.set_auto_role(guild.id, role.id)
+        return web.json_response({"status": "ok"})
+
+    async def _handle_set_tempvoice_channels(self, request: web.Request) -> web.Response:
+        guild = self._get_guild(request)
+        if guild is None:
+            return web.json_response({"error": "Bot ist auf diesem Server nicht vorhanden"}, status=404)
+
+        try:
+            payload = await request.json()
+            raw_ids = payload["channel_ids"]
+            channel_ids = [int(channel_id) for channel_id in raw_ids]
+        except (ValueError, KeyError, TypeError):
+            return web.json_response({"error": "channel_ids fehlt oder ist ungültig"}, status=400)
+
+        for channel_id in channel_ids:
+            channel = guild.get_channel(channel_id)
+            if not isinstance(channel, discord.VoiceChannel):
+                return web.json_response(
+                    {"error": "Channel gehört nicht zu diesem Server oder ist kein Sprachkanal"}, status=404
+                )
+
+        await db.set_tempvoice_creator_channels(guild.id, channel_ids)
         return web.json_response({"status": "ok"})
 
     @staticmethod
