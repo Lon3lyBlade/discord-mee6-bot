@@ -7,6 +7,14 @@ import discord
 from aiohttp import web
 from discord.ext import commands
 
+from cogs.events import (
+    apply_role_restriction,
+    delete_event_message,
+    parse_event_datetime,
+    post_event_message,
+    refresh_event_message,
+    to_utc_iso,
+)
 from database import db
 
 logger = logging.getLogger("bot.internal_api")
@@ -71,6 +79,10 @@ class InternalAPI(commands.Cog):
         app.router.add_post("/api/guilds/{guild_id}/mod-log-channel", self._handle_set_mod_log_channel)
         app.router.add_get("/api/guilds/{guild_id}/warnings", self._handle_get_warnings)
         app.router.add_post("/api/guilds/{guild_id}/warnings/{warning_id}/delete", self._handle_delete_warning)
+        app.router.add_get("/api/guilds/{guild_id}/events", self._handle_get_events)
+        app.router.add_post("/api/guilds/{guild_id}/events", self._handle_create_event)
+        app.router.add_post("/api/guilds/{guild_id}/events/{event_id}/edit", self._handle_edit_event)
+        app.router.add_post("/api/guilds/{guild_id}/events/{event_id}/delete", self._handle_delete_event)
 
         self.runner = web.AppRunner(app)
         await self.runner.setup()
@@ -281,6 +293,190 @@ class InternalAPI(commands.Cog):
         deleted = await db.delete_warning(guild.id, warning_id)
         if not deleted:
             return web.json_response({"error": "Verwarnung nicht gefunden"}, status=404)
+        return web.json_response({"status": "ok"})
+
+    async def _handle_get_events(self, request: web.Request) -> web.Response:
+        guild = self._get_guild(request)
+        if guild is None:
+            return web.json_response({"error": "Bot ist auf diesem Server nicht vorhanden"}, status=404)
+
+        events = await db.get_events(guild.id)
+        result = []
+        for event in events:
+            grouped: dict[str, list[dict]] = {"yes": [], "no": [], "maybe": []}
+            for row in await db.get_rsvps(event["id"]):
+                grouped.setdefault(row["status"], []).append(
+                    {"id": str(row["user_id"]), "display": self._resolve_display_name(guild, row["user_id"])}
+                )
+
+            channel = guild.get_channel(event["channel_id"])
+            role = guild.get_role(event["target_role_id"]) if event["target_role_id"] else None
+            result.append(
+                {
+                    "id": event["id"],
+                    "title": event["title"],
+                    "description": event["description"],
+                    "event_time": event["event_time"],
+                    "status": event["status"],
+                    "channel_id": str(event["channel_id"]),
+                    "channel_name": channel.name if channel else None,
+                    "target_role_id": str(event["target_role_id"]) if event["target_role_id"] else None,
+                    "target_role_name": role.name if role else None,
+                    "rsvps": grouped,
+                }
+            )
+        return web.json_response({"events": result})
+
+    def _parse_event_payload(self, guild: discord.Guild, payload: dict):
+        """Validiert und löst die gemeinsamen Event-Felder von Create/Edit auf.
+
+        Gibt entweder (error_response, None, None, None) oder (None, title, description, (event_time, channel, role)) zurück.
+        """
+        try:
+            title = (payload["title"] or "").strip()
+            channel_id = int(payload["channel_id"])
+            raw_time = payload["event_time"]
+        except (KeyError, TypeError, ValueError):
+            return web.json_response({"error": "Titel, Channel und Datum/Uhrzeit sind erforderlich"}, status=400), None, None, None
+
+        if not title:
+            return web.json_response({"error": "Titel darf nicht leer sein"}, status=400), None, None, None
+        if self._too_long(title, 256):
+            return web.json_response({"error": "Titel darf maximal 256 Zeichen haben"}, status=400), None, None, None
+
+        description = (payload.get("description") or "").strip()
+        if self._too_long(description, 1000):
+            return web.json_response({"error": "Beschreibung darf maximal 1000 Zeichen haben"}, status=400), None, None, None
+
+        event_time = parse_event_datetime(raw_time)
+        if event_time is None:
+            return web.json_response({"error": "Ungültiges Datum/Uhrzeit-Format"}, status=400), None, None, None
+
+        channel = guild.get_channel(channel_id)
+        if not isinstance(channel, discord.TextChannel):
+            return (
+                web.json_response(
+                    {"error": "Channel gehört nicht zu diesem Server oder ist kein Textchannel"}, status=404
+                ),
+                None,
+                None,
+                None,
+            )
+
+        role = None
+        target_role_id = payload.get("target_role_id")
+        if target_role_id:
+            try:
+                role = guild.get_role(int(target_role_id))
+            except (TypeError, ValueError):
+                role = None
+            if role is None:
+                return web.json_response({"error": "Rolle gehört nicht zu diesem Server"}, status=404), None, None, None
+
+        return None, title, description, (event_time, channel, role)
+
+    async def _handle_create_event(self, request: web.Request) -> web.Response:
+        guild = self._get_guild(request)
+        if guild is None:
+            return web.json_response({"error": "Bot ist auf diesem Server nicht vorhanden"}, status=404)
+
+        try:
+            payload = await request.json()
+        except json.JSONDecodeError:
+            return web.json_response({"error": "Ungültiges JSON"}, status=400)
+
+        error, title, description, parsed = self._parse_event_payload(guild, payload)
+        if error is not None:
+            return error
+        event_time, channel, role = parsed
+
+        event_id = await db.create_event(
+            guild_id=guild.id,
+            channel_id=channel.id,
+            title=title,
+            description=description,
+            event_time=to_utc_iso(event_time),
+            target_role_id=role.id if role else None,
+            created_by=None,
+        )
+        event = await db.get_event(event_id)
+        message_id = await post_event_message(self.bot, event)
+        if message_id is None:
+            await db.delete_event(event_id)
+            return web.json_response(
+                {"error": "Konnte das Event nicht im gewählten Channel posten (fehlende Berechtigung?)"}, status=400
+            )
+
+        return web.json_response({"status": "ok", "event_id": event_id})
+
+    async def _handle_edit_event(self, request: web.Request) -> web.Response:
+        guild = self._get_guild(request)
+        if guild is None:
+            return web.json_response({"error": "Bot ist auf diesem Server nicht vorhanden"}, status=404)
+
+        try:
+            event_id = int(request.match_info["event_id"])
+        except ValueError:
+            return web.json_response({"error": "Ungültige Event-ID"}, status=400)
+
+        event = await db.get_event(event_id)
+        if event is None or event["guild_id"] != guild.id:
+            return web.json_response({"error": "Event nicht gefunden"}, status=404)
+
+        try:
+            payload = await request.json()
+        except json.JSONDecodeError:
+            return web.json_response({"error": "Ungültiges JSON"}, status=400)
+
+        error, title, description, parsed = self._parse_event_payload(guild, payload)
+        if error is not None:
+            return error
+        event_time, channel, role = parsed
+        channel_changed = channel.id != event["channel_id"]
+
+        await db.update_event(
+            event_id,
+            title=title,
+            description=description,
+            event_time=to_utc_iso(event_time),
+            channel_id=channel.id,
+            target_role_id=role.id if role else None,
+        )
+
+        if role is not None:
+            await apply_role_restriction(channel, role)
+
+        if channel_changed:
+            # Eine Nachricht kann nicht zwischen Channels verschoben werden - alte
+            # Nachricht entfernen und das Event im neuen Channel frisch posten.
+            await delete_event_message(self.bot, event_id)
+            updated_event = await db.get_event(event_id)
+            message_id = await post_event_message(self.bot, updated_event)
+            if message_id is None:
+                return web.json_response(
+                    {"error": "Konnte das Event nicht im neuen Channel posten (fehlende Berechtigung?)"}, status=400
+                )
+        else:
+            await refresh_event_message(self.bot, event_id)
+
+        return web.json_response({"status": "ok"})
+
+    async def _handle_delete_event(self, request: web.Request) -> web.Response:
+        guild = self._get_guild(request)
+        if guild is None:
+            return web.json_response({"error": "Bot ist auf diesem Server nicht vorhanden"}, status=404)
+
+        try:
+            event_id = int(request.match_info["event_id"])
+        except ValueError:
+            return web.json_response({"error": "Ungültige Event-ID"}, status=400)
+
+        event = await db.get_event(event_id)
+        if event is None or event["guild_id"] != guild.id:
+            return web.json_response({"error": "Event nicht gefunden"}, status=404)
+
+        await delete_event_message(self.bot, event_id)
+        await db.delete_event(event_id)
         return web.json_response({"status": "ok"})
 
     @staticmethod

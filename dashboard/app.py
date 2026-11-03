@@ -1,12 +1,18 @@
 import json
 import os
+from datetime import datetime
 from functools import wraps
+from zoneinfo import ZoneInfo
 
 import requests
 from dotenv import load_dotenv
 from flask import Flask, redirect, render_template, request, session, url_for
 from requests_oauthlib import OAuth2Session
 from werkzeug.exceptions import RequestEntityTooLarge
+
+# Muss mit EVENT_TZ in cogs/events.py übereinstimmen, damit Eingaben aus dem
+# datetime-local-Feld und die Anzeige bestehender Events dieselbe Zeitzone verwenden.
+EVENT_TZ = ZoneInfo("Europe/Berlin")
 
 # load_dotenv() ist rein für die lokale Entwicklung gedacht und no-opt, falls keine
 # .env-Datei existiert. Im Unraid-Container kommen alle Werte über echte
@@ -299,6 +305,136 @@ def moderation_page(guild_id):
         warnings=warnings,
         message=request.args.get("message"),
     )
+
+
+def fetch_events(guild_id: str):
+    """Holt die Event-Liste von der internen Bot-API und bereitet sie fürs Template auf.
+
+    Gibt (error, events) zurück: error ist None bei Erfolg, sonst "unreachable".
+    """
+    try:
+        response = requests.get(
+            f"{BOT_API_URL}/api/guilds/{guild_id}/events",
+            headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
+            timeout=5,
+        )
+        response.raise_for_status()
+        events = response.json()["events"]
+    except requests.RequestException:
+        return "unreachable", None
+
+    for event in events:
+        event_time_utc = datetime.fromisoformat(event["event_time"])
+        event_time_local = event_time_utc.astimezone(EVENT_TZ)
+        event["event_time_display"] = event_time_local.strftime("%d.%m.%Y %H:%M")
+        event["event_time_input"] = event_time_local.strftime("%Y-%m-%dT%H:%M")
+
+    return None, events
+
+
+@app.route("/server/<guild_id>/events")
+@login_required
+def events_page(guild_id):
+    result = resolve_guild_or_response(guild_id, "events.html")
+    if not isinstance(result, tuple) or len(result) != 4:
+        return result
+    _discord_session, user, admin_guilds, guild = result
+
+    error, data = fetch_guild_bot_data(guild_id)
+    if error:
+        return render_template("events.html", error=error, guild=guild, user=user, guilds=admin_guilds)
+
+    events_error, events = fetch_events(guild_id)
+    if events_error:
+        return render_template("events.html", error=events_error, guild=guild, user=user, guilds=admin_guilds)
+
+    return render_template(
+        "events.html",
+        active="events",
+        guild=guild,
+        user=user,
+        guilds=admin_guilds,
+        channels=data["channels"],
+        roles=data["roles"],
+        events=events,
+        message=request.args.get("message"),
+    )
+
+
+@app.route("/server/<guild_id>/events", methods=["POST"])
+@login_required
+def create_event(guild_id):
+    discord_session = make_discord_session(token=session["oauth_token"])
+    if get_admin_guild_or_none(discord_session, guild_id) is None:
+        return render_template("events.html", error="access"), 403
+
+    payload = {
+        "title": request.form.get("title", "").strip(),
+        "description": request.form.get("description", "").strip(),
+        "event_time": request.form.get("event_time", "").strip(),
+        "channel_id": request.form.get("channel_id", "").strip(),
+        "target_role_id": request.form.get("target_role_id", "").strip() or None,
+    }
+    try:
+        response = requests.post(
+            f"{BOT_API_URL}/api/guilds/{guild_id}/events",
+            json=payload,
+            headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
+            timeout=10,
+        )
+        message = "Event wurde erstellt." if response.ok else response.json().get("error", "Fehler beim Erstellen.")
+    except requests.RequestException:
+        message = "Der Bot ist über die interne API aktuell nicht erreichbar."
+
+    return redirect(url_for("events_page", guild_id=guild_id, message=message))
+
+
+@app.route("/server/<guild_id>/events/<event_id>/edit", methods=["POST"])
+@login_required
+def edit_event(guild_id, event_id):
+    discord_session = make_discord_session(token=session["oauth_token"])
+    if get_admin_guild_or_none(discord_session, guild_id) is None:
+        return render_template("events.html", error="access"), 403
+
+    payload = {
+        "title": request.form.get("title", "").strip(),
+        "description": request.form.get("description", "").strip(),
+        "event_time": request.form.get("event_time", "").strip(),
+        "channel_id": request.form.get("channel_id", "").strip(),
+        "target_role_id": request.form.get("target_role_id", "").strip() or None,
+    }
+    try:
+        response = requests.post(
+            f"{BOT_API_URL}/api/guilds/{guild_id}/events/{event_id}/edit",
+            json=payload,
+            headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
+            timeout=10,
+        )
+        message = "Event wurde aktualisiert." if response.ok else response.json().get("error", "Fehler beim Speichern.")
+    except requests.RequestException:
+        message = "Der Bot ist über die interne API aktuell nicht erreichbar."
+
+    return redirect(url_for("events_page", guild_id=guild_id, message=message))
+
+
+@app.route("/server/<guild_id>/events/<event_id>/delete", methods=["POST"])
+@login_required
+def delete_event(guild_id, event_id):
+    discord_session = make_discord_session(token=session["oauth_token"])
+    if get_admin_guild_or_none(discord_session, guild_id) is None:
+        return render_template("events.html", error="access"), 403
+
+    try:
+        response = requests.post(
+            f"{BOT_API_URL}/api/guilds/{guild_id}/events/{event_id}/delete",
+            headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
+            timeout=5,
+        )
+        message = "Event wurde abgesagt und gelöscht." if response.ok else response.json().get("error", "Fehler beim Löschen.")
+    except requests.RequestException:
+        message = "Der Bot ist über die interne API aktuell nicht erreichbar."
+
+    return redirect(url_for("events_page", guild_id=guild_id, message=message))
 
 
 @app.route("/server/<guild_id>/mod-log-channel", methods=["POST"])

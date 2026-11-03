@@ -53,6 +53,34 @@ async def init_db() -> None:
             )
             """
         )
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id INTEGER NOT NULL,
+                channel_id INTEGER NOT NULL,
+                message_id INTEGER,
+                title TEXT NOT NULL,
+                description TEXT,
+                event_time TEXT NOT NULL,
+                target_role_id INTEGER,
+                created_by INTEGER,
+                status TEXT NOT NULL DEFAULT 'scheduled',
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS event_rsvps (
+                event_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                status TEXT NOT NULL,
+                responded_at TEXT NOT NULL,
+                PRIMARY KEY (event_id, user_id)
+            )
+            """
+        )
         await db.commit()
 
 
@@ -197,3 +225,137 @@ async def clear_warnings(guild_id: int, user_id: int) -> int:
         )
         await db.commit()
         return cursor.rowcount
+
+
+_EVENT_COLUMNS = (
+    "id",
+    "guild_id",
+    "channel_id",
+    "message_id",
+    "title",
+    "description",
+    "event_time",
+    "target_role_id",
+    "created_by",
+    "status",
+    "created_at",
+)
+
+
+def _row_to_event(row) -> dict:
+    return dict(zip(_EVENT_COLUMNS, row))
+
+
+async def create_event(
+    guild_id: int,
+    channel_id: int,
+    title: str,
+    description: str,
+    event_time: str,
+    target_role_id: int | None,
+    created_by: int | None,
+) -> int:
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            """
+            INSERT INTO events
+                (guild_id, channel_id, title, description, event_time, target_role_id, created_by, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'scheduled', datetime('now'))
+            """,
+            (guild_id, channel_id, title, description, event_time, target_role_id, created_by),
+        )
+        await db.commit()
+        return cursor.lastrowid
+
+
+async def set_event_message(event_id: int, message_id: int) -> None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE events SET message_id = ? WHERE id = ?", (message_id, event_id))
+        await db.commit()
+
+
+async def get_event(event_id: int) -> dict | None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            f"SELECT {', '.join(_EVENT_COLUMNS)} FROM events WHERE id = ?", (event_id,)
+        ) as cursor:
+            row = await cursor.fetchone()
+            return _row_to_event(row) if row else None
+
+
+async def get_events(guild_id: int, include_cancelled: bool = True) -> list[dict]:
+    query = f"SELECT {', '.join(_EVENT_COLUMNS)} FROM events WHERE guild_id = ?"
+    params: list = [guild_id]
+    if not include_cancelled:
+        query += " AND status != 'cancelled'"
+    query += " ORDER BY event_time ASC"
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(query, params) as cursor:
+            return [_row_to_event(row) async for row in cursor]
+
+
+async def get_scheduled_events_with_message() -> list[dict]:
+    # Für die Wiederherstellung persistenter Button-Views beim Bot-Neustart (cog_load).
+    query = (
+        f"SELECT {', '.join(_EVENT_COLUMNS)} FROM events "
+        "WHERE status = 'scheduled' AND message_id IS NOT NULL"
+    )
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(query) as cursor:
+            return [_row_to_event(row) async for row in cursor]
+
+
+async def update_event(
+    event_id: int,
+    *,
+    title: str,
+    description: str,
+    event_time: str,
+    channel_id: int,
+    target_role_id: int | None,
+) -> None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """
+            UPDATE events
+            SET title = ?, description = ?, event_time = ?, channel_id = ?, target_role_id = ?
+            WHERE id = ?
+            """,
+            (title, description, event_time, channel_id, target_role_id, event_id),
+        )
+        await db.commit()
+
+
+async def delete_event(event_id: int) -> None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("DELETE FROM event_rsvps WHERE event_id = ?", (event_id,))
+        await db.execute("DELETE FROM events WHERE id = ?", (event_id,))
+        await db.commit()
+
+
+async def set_rsvp(event_id: int, user_id: int, status: str) -> None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """
+            INSERT INTO event_rsvps (event_id, user_id, status, responded_at)
+            VALUES (?, ?, ?, datetime('now'))
+            ON CONFLICT(event_id, user_id) DO UPDATE SET
+                status = excluded.status,
+                responded_at = excluded.responded_at
+            """,
+            (event_id, user_id, status),
+        )
+        await db.commit()
+
+
+async def get_rsvps(event_id: int) -> list[dict]:
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            "SELECT user_id, status, responded_at FROM event_rsvps WHERE event_id = ?",
+            (event_id,),
+        ) as cursor:
+            return [
+                {"user_id": row[0], "status": row[1], "responded_at": row[2]}
+                async for row in cursor
+            ]

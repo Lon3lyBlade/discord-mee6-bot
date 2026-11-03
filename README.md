@@ -20,10 +20,14 @@ Dashboard laufen **in einem einzigen Docker-Container** als zwei Prozesse.
   Betreten eines beliebigen konfigurierten Ersteller-Kanals (in dessen eigener Kategorie)
   und löscht ihn wieder, sobald er leer ist. Konfiguration läuft ausschließlich über das
   Dashboard (beliebig viele Ersteller-Kanäle per Checkbox auswählbar).
+- **Events & Kalender** — `/event create` postet ein Event-Embed mit Zusage/Absage/
+  Vielleicht-Buttons (Live-Teilnehmerliste, persistent über Bot-Neustarts). Optional kann
+  eine Ziel-Rolle angegeben werden, auf die der Bot den Channel beschränkt. Events lassen
+  sich zusätzlich komplett im Dashboard erstellen, bearbeiten und absagen.
 - **Web-Dashboard** — Discord-OAuth2-Login, Übersicht aller Server mit Adminrechten, pro
-  Server eigene Seiten für Einstellungen (Willkommens-Channel, AutoRole), TempVoice-Kanäle
-  und einen Embed-Generator (Author/Footer/Thumbnail/Bild-Upload, dynamische Felder,
-  Discord-Live-Vorschau).
+  Server eigene Seiten für Einstellungen (Willkommens-Channel, AutoRole), TempVoice-Kanäle,
+  Events/Kalender und einen Embed-Generator (Author/Footer/Thumbnail/Bild-Upload, dynamische
+  Felder, Discord-Live-Vorschau).
 
 ## Architektur
 
@@ -36,6 +40,7 @@ Discord-host/
 │   ├── automod.py                 # Einladungslink-Filter + Anti-Spam
 │   ├── moderation.py               # Kick/Ban/Timeout/Warn/Clear-Slash-Commands
 │   ├── tempvoice.py                # Temporäre Sprachkanäle
+│   ├── events.py                  # Event-/Kalendersystem mit RSVP-Buttons
 │   └── internal_api.py            # Interne aiohttp-API für Bot<->Dashboard-Kommunikation
 ├── database/
 │   └── db.py                      # Gemeinsame SQLite-DB (aiosqlite)
@@ -49,6 +54,7 @@ Discord-host/
 │       ├── settings.html          # Willkommens-Channel + AutoRole
 │       ├── moderation.html         # Mod-Log-Channel + Verwarnungs-Übersicht
 │       ├── tempvoice.html         # TempVoice-Kanalauswahl
+│       ├── events.html            # Event-/Kalender-Übersicht + Erstellen/Bearbeiten
 │       └── embed_builder.html     # Embed-Generator
 ├── .github/workflows/
 │   └── docker-publish.yml         # Baut + pusht das Docker-Image nach ghcr.io bei Push auf master
