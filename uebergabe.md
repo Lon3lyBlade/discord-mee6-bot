@@ -1,6 +1,6 @@
 # Übergabe: Discord-Bot + Web-Dashboard (MEE6-Klon)
 
-Stand: 2026-11-01. Dieses Dokument richtet sich an eine andere KI/Entwicklungsinstanz,
+Stand: 2026-11-03. Dieses Dokument richtet sich an eine andere KI/Entwicklungsinstanz,
 die an diesem Projekt weiterarbeiten soll, ohne den bisherigen Chatverlauf zu kennen.
 
 ## Ziel des Projekts
@@ -18,25 +18,36 @@ Discord-host/
 ├── cogs/
 │   ├── welcome.py                 # Willkommensnachricht (konfigurierbarer Channel)
 │   ├── autorole.py                # Automatische Rollenvergabe bei Join
+│   ├── automod.py                 # Einladungslink-Filter + Anti-Spam
+│   ├── moderation.py               # Kick/Ban/Timeout/Warn/Clear-Slash-Commands
+│   ├── tempvoice.py                # Temporäre Sprachkanäle
 │   └── internal_api.py            # Interne aiohttp-API für Bot<->Dashboard-Kommunikation
 ├── database/
-│   └── db.py                      # Gemeinsame SQLite-DB (aiosqlite), eine Tabelle: guild_config
+│   └── db.py                      # Gemeinsame SQLite-DB (aiosqlite)
 ├── dashboard/
-│   ├── app.py                     # Flask-App: OAuth2-Login, Server-Übersicht, Embed-Generator
+│   ├── app.py                     # Flask-App: OAuth2-Login, Server-Verwaltung, Embed-Generator
 │   └── templates/
 │       ├── index.html             # Login-Seite
 │       ├── dashboard.html         # Server-Übersicht (Admin-Guilds des eingeloggten Users)
-│       └── embed_generator.html   # Formular zum Senden eines Embeds über den Bot
+│       ├── _sidebar.html          # Sidebar inkl. Server-Switcher
+│       ├── _guild_layout.html     # Gemeinsames Layout für die Server-Unterseiten
+│       ├── settings.html          # Willkommens-Channel + AutoRole
+│       ├── moderation.html         # Mod-Log-Channel + Verwarnungs-Übersicht
+│       ├── tempvoice.html         # TempVoice-Kanalauswahl
+│       └── embed_builder.html     # Embed-Generator
+├── .github/workflows/
+│   └── docker-publish.yml         # Baut + pusht das Docker-Image nach ghcr.io bei Push auf master
 ├── Dockerfile                     # Ein Image für Bot + Dashboard
 ├── start.sh                       # Startet beide Prozesse im Container, leitet SIGTERM weiter
-├── docker-compose.yml             # Lokales Referenz-Setup (für produktives Deployment siehe deploy.sh)
-├── deploy.sh                      # Tatsächlich genutztes Deploy-Skript (SSH + docker run auf Unraid)
+├── docker-compose.yml             # Generisches Referenz-Setup für Nicht-Unraid-Hosts
+├── deploy.sh                      # Veraltetes Deploy-Skript, siehe Abschnitt "Deployment" unten
 ├── requirements.txt
 ├── .env.example                   # Vorlage, welche Env-Vars nötig sind
 └── .env                           # Lokal ausgefüllt, NICHT eingecheckt (siehe .gitignore)
 ```
 
-Kein Git-Repo bisher initialisiert (`git init` wurde nie ausgeführt).
+Git-Repo ist initialisiert, Remote ist ein **privates** GitHub-Repo
+(`github.com/Lon3lyBlade/discord-mee6-bot`), Branch `master`.
 
 ## Features (Stand jetzt)
 
@@ -195,8 +206,62 @@ Kein Git-Repo bisher initialisiert (`git init` wurde nie ausgeführt).
   ist), `POST .../warnings/<id>/delete`. `GET .../config` liefert jetzt zusätzlich
   `mod_log_channel_id`.
 
+### 8. AutoMod (`cogs/automod.py`)
+- `on_message` filtert Nachrichten von Bots/außerhalb von Guilds sofort raus, dann zwei
+  unabhängige Checks nacheinander (`_handle_link_filter`, dann `_handle_spam`):
+  - **Einladungslink-Filter**: löscht Nachrichten, die `discord.gg/` enthalten, außer der
+    Autor hat `administrator`. Loggt ins Mod-Log.
+  - **Anti-Spam**: pro `(guild_id, user_id)` wird ein `collections.deque(maxlen=20)` der
+    letzten Nachrichten im RAM gehalten (**kein DB-Storage, geht bei Bot-Neustart verloren**,
+    bewusst so belassen — reiner Kurzzeit-Spam-Schutz). Mehr als `SPAM_MESSAGE_LIMIT` (5)
+    Nachrichten innerhalb von `SPAM_INTERVAL_SECONDS` (3) → alle betroffenen Nachrichten
+    werden gelöscht, der User bekommt eine Warn-DM (best-effort, `discord.Forbidden`
+    verschluckt), Log-Eintrag.
+- Nutzt die **gleiche** `mod_log_channel_id`-Spalte/den gleichen `_get_log_channel()`-Fallback
+  (Channel-Suche nach dem Namen `"mod-log"`, falls nichts konfiguriert) wie `moderation.py` —
+  dort bewusst dupliziert statt gemeinsamer Hilfsdatei (siehe Punkt 7).
+- Slash-Command `/set-modlog channel:<#channel>` (Berechtigung `manage_guild`) — identischer
+  Befehl wie in `moderation.py` beschrieben, beide Cogs teilen sich die eine Config-Spalte.
+- **Kein Dashboard-Pendant** für AutoMod selbst (nur der Mod-Log-Channel ist über
+  `moderation.html` einstellbar) — Schwellenwerte (`SPAM_MESSAGE_LIMIT`,
+  `SPAM_INTERVAL_SECONDS`, `INVITE_LINK_MARKER`) sind aktuell Modulkonstanten, keine
+  Pro-Server-Config. Falls gewünscht: eigene `guild_config`-Spalten + Dashboard-Formular
+  analog zum TempVoice-Muster ergänzen.
+
+### 9. TempVoice (`cogs/tempvoice.py`)
+- `on_voice_state_update` reagiert auf zwei Fälle:
+  - **Beitritt zu einem Ersteller-Kanal** (`after.channel.id` ist einer der konfigurierten
+    `tempvoice_creator_channels`): erstellt einen neuen Sprachkanal `🔊 | {display_name}'s
+    Lounge` **in derselben Kategorie wie der Ersteller-Kanal** (nicht in einer separat
+    konfigurierten Kategorie — bewusste Vereinfachung, damit beliebig viele Ersteller-Kanäle
+    ohne zusätzliche Kategorie-Zuordnung pro Kanal funktionieren), vergibt dem beitretenden
+    Mitglied `manage_channels`+`move_members`-Overwrites auf dem neuen Kanal, verschiebt es
+    per `member.move_to()` sofort hinein.
+  - **Verlassen eines Kanals**: wird gelöscht, wenn er (a) selbst kein Ersteller-Kanal ist,
+    (b) leer ist (`len(channel.members) == 0`) und (c) in derselben Kategorie wie **irgendein**
+    aktuell konfigurierter Ersteller-Kanal liegt (`_is_managed_category()`, live über
+    `guild.get_channel()` aufgelöst, nicht in der DB gespeichert) — verhindert, dass fremde
+    leere Voice-Channels in anderen Kategorien versehentlich gelöscht werden.
+- **Konfiguration läuft ausschließlich über das Dashboard** (`tempvoice.html`,
+  Checkbox-Mehrfachauswahl aller Voice-Channels der Guild) — es gibt bewusst **keinen**
+  Slash-Command mehr dafür (gab es in einer früheren Version, wurde entfernt, als die
+  Mehrfachauswahl übers Dashboard kam, um nicht zwei potenziell widersprüchliche
+  Config-Quellen zu haben).
+- Bot-API-Endpunkte in `cogs/internal_api.py`: `GET /api/guilds/<id>/voice-channels` (alle
+  Voice-Channels der Guild, für die Dashboard-Checkboxliste), `POST
+  /api/guilds/<id>/tempvoice-channels` `{channel_ids: [...]}` (validiert, dass jede ID zur
+  Guild gehört und ein `discord.VoiceChannel` ist, dann `db.set_tempvoice_creator_channels()`
+  — ersetzt dabei die komplette Liste). `GET .../config` liefert zusätzlich
+  `tempvoice_channel_ids` (Liste von Strings).
+
 ### 5. Datenbank (`database/db.py`)
-- Eine Tabelle `guild_config (guild_id PK, welcome_channel_id, auto_role_id)`.
+- Eine Tabelle `guild_config (guild_id PK, welcome_channel_id, auto_role_id,
+  mod_log_channel_id)` für alle 1:1-Konfigurationswerte pro Server.
+- `tempvoice_creator_channels (guild_id, channel_id, PK(guild_id, channel_id))` — bewusst
+  **eigene Tabelle statt einer Spalte** in `guild_config`, weil beliebig viele Ersteller-
+  Kanäle pro Server möglich sind (n:1-Daten, siehe Punkt 9). `set_tempvoice_creator_channels()`
+  ersetzt bei jedem Dashboard-Save die komplette Liste für die Guild (`DELETE` + `executemany`-
+  `INSERT`), es gibt kein granulares Hinzufügen/Entfernen einzelner Kanäle auf DB-Ebene.
 - Zusätzlich eine eigene Tabelle `warnings (id PK AUTOINCREMENT, guild_id, user_id,
   moderator_id, reason, created_at)` für die `/warn`-Historie (siehe Punkt 7) — bewusst
   keine Spalte in `guild_config`, da es sich um n:1-Daten pro Server handelt (viele
@@ -231,27 +296,71 @@ Siehe `.env.example` für die vollständige, kommentierte Liste.
 
 ## Deployment
 
-Es gibt **zwei parallele Wege**, die beide im Repo liegen:
+**Aktueller Produktivweg (Stand 2026-11-03): GitHub Actions baut, Unraid verwaltet den
+Container nativ.** Das war mehrfacher Anlauf wert, hier die Historie und die Fallstricke,
+damit nichts versehentlich auf einen früheren Zwischenstand zurückgedreht wird.
 
-1. **`docker-compose.yml`** — generisches Referenz-Setup für `docker compose up`
-   (lokal oder auf jedem Docker-Host), mountet `./data:/app/data`.
-2. **`deploy.sh`** — das tatsächlich für den Unraid-Server genutzte Skript. Es läuft
-   lokal auf dem Entwickler-Laptop im LAN, baut das Image **auf dem Unraid-Host selbst**
-   (per SSH) und startet den Container dort direkt mit `docker run` (nicht über Compose).
-   - Zielserver: `192.168.178.41` (User `root`, Default in `deploy.sh`, per Env-Var
-     `UNRAID_HOST`/`UNRAID_USER` überschreibbar)
-   - Remote-Verzeichnis: `/mnt/user/appdata/discord-bot-dashboard`
-   - Host-Port: `5001` → Container-Port `5000` (Default, per `HOST_PORT` überschreibbar)
-   - Container-Name/Image: `discord-bot-dashboard`
-   - Das Skript bricht kontrolliert ab, wenn `.env` fehlt, noch Platzhalterwerte enthält,
-     oder der Zielport bereits von einem anderen Container belegt ist.
-   - `data/` auf dem Unraid-Host bleibt bei jedem Redeploy unangetastet (explizit von der
-     Dateiübertragung ausgeschlossen).
+### Build & Publish
+- `.github/workflows/docker-publish.yml` baut bei jedem Push auf `master` (und per
+  `workflow_dispatch`) das Image via `docker/build-push-action` und pusht es als
+  `ghcr.io/lon3lyblade/discord-mee6-bot:latest` **und** `:<git-sha>` in die GitHub Container
+  Registry. Repository-Owner wird per `${IMAGE_NAME,,}` explizit kleingeschrieben (GHCR
+  verlangt lowercase Image-Pfade, `github.repository_owner` liefert aber die Original-
+  Schreibweise `Lon3lyBlade`).
+- Auth läuft über das automatische `secrets.GITHUB_TOKEN` (kein manuell angelegtes PAT nötig
+  für den Workflow selbst, nur Workflow-Permission `packages: write`).
+- Das Package ist **privat** (bewusste Nutzerentscheidung) und per "Inherit access from
+  source repository" mit dem Repo verknüpft.
 
-**Wichtig:** Falls an der Deploy-Strategie weitergearbeitet wird, zuerst klären, ob
-`docker-compose.yml` noch gebraucht wird oder ob `deploy.sh` der einzige relevante Weg
-ist — aktuell sind beide im Repo, aber nur `deploy.sh` spiegelt den echten Produktivpfad
-wider (unterschiedliche Container-Namen/Ports zwischen beiden Dateien beachten!).
+### Unraid-Seite: Container als echtes Unraid-Template, nicht per `docker run`
+- Der Container wurde manuell über Unraids **"Add Container"**-Formular angelegt (Repository
+  `ghcr.io/lon3lyblade/discord-mee6-bot:latest`, Network Type `Bridge`, Port 5000→5001, Pfad
+  `/app/data` → `/mnt/user/appdata/discord-bot-dashboard/data`, 6 einzelne `Variable`-Einträge
+  für die Secrets aus `.env`) — **nicht** per SSH/`docker run` wie ursprünglich via
+  `deploy.sh`. Nur so legt Unraid intern eine Vorlage an, die es für die native
+  Update-Erkennung ("up-to-date"/"apply update" in der VERSION-Spalte) und den
+  **"Apply Update"**-Button braucht. Ein Container, der nur per rohem `docker run` existiert,
+  zeigt dauerhaft "not available" an, selbst wenn das Image öffentlich erreichbar wäre.
+- **`deploy.sh` ist damit obsolet für den laufenden Produktiv-Container** — es ist ein
+  Überbleibsel aus der Zwischenlösung (zieht das Image per SSH, macht `docker rm -f` +
+  `docker run`). Würde es gegen den jetzt laufenden Container ausgeführt, würde es die
+  Unraid-Template-Verwaltung **zerstören** (Container wäre danach wieder "not available" und
+  der WebUI-Link würde wieder fehlen, siehe unten) und müsste komplett neu über "Add
+  Container" aufgesetzt werden. Falls `deploy.sh` nicht mehr gebraucht wird, könnte es entfernt
+  oder zumindest mit einer deutlichen Warnung versehen werden.
+- **WebUI-Link-Fallstrick:** Der klickbare Link/Icon-Klick in der Unraid-Docker-Übersicht kommt
+  aus dem Docker-**Label** `net.unraid.docker.webui` (das alte `deploy.sh` hat das per
+  `--label` gesetzt). Beim manuellen Anlegen über "Add Container" gibt es dafür **kein**
+  eigenes Textfeld — es muss als zusätzlicher Eintrag vom Typ **"Label"** (nicht "Port"!)
+  hinzugefügt werden: Key `net.unraid.docker.webui`, Value `http://[IP]:[PORT:5000]/`
+  (Unraid-Platzhalter, `5000` = Container-Port, nicht Host-Port). Ein Port-Eintrag mit dem
+  *Namen* "WebUI" (naheliegender erster Versuch) hat **nicht** funktioniert.
+- **GHCR-Token-Fallstrick (viel Zeit gekostet):** `docker login ghcr.io` auf Unraid war mit
+  einem **classic** Personal Access Token mit Scope `read:packages` erfolgreich (`Login
+  Succeeded`), ein anschließender `docker pull` des **privaten** Images schlug trotzdem mit
+  `denied` fehl — und zwar reproduzierbar mit frisch generierten Tokens. Isolierter Test:
+  Package testweise auf `Public` gestellt → `docker pull` ganz ohne Login funktionierte sofort
+  (bestätigt: Netzwerk/Unraid-Docker-Daemon war nie das Problem). Lösung: Token zusätzlich mit
+  Scope **`repo`** (Full control of private repositories) ausstatten — offenbar verlangt GHCR
+  für Packages, deren Zugriff von einem **privaten** Repo geerbt wird ("Inherit access from
+  source repository"), zum Pull-Zeitpunkt einen Nachweis des Repo-Zugriffs, den `read:packages`
+  allein nicht liefert. Das steht so nicht in Githubs offizieller Doku (die nennt nur
+  `read:packages` als nötig), war hier aber reproduzierbar der entscheidende Unterschied.
+  Package danach wieder auf `Private` zurückgestellt.
+
+### Falls nochmal von Null aufgesetzt werden muss
+1. Workflow pusht automatisch bei jedem Push — nichts manuell zu tun.
+2. Auf dem Zielhost: `docker login ghcr.io -u <user>` mit einem classic PAT, Scopes
+   `read:packages` **und** `repo`.
+3. Container über Unraids "Add Container"-Formular anlegen (siehe Parameter oben), **nicht**
+   über `deploy.sh`.
+4. Label `net.unraid.docker.webui` mit `http://[IP]:[PORT:5000]/` ergänzen, falls der
+   Dashboard-Link fehlt.
+5. Autostart-Toggle für den Container aktivieren.
+
+`docker-compose.yml` bleibt als generisches Referenz-Setup für Nicht-Unraid-Hosts im Repo
+(nutzt andere Default-Werte für Name/Port als das Unraid-Setup — falls daran weitergearbeitet
+wird, nicht mit dem Unraid-Setup verwechseln).
 
 ## Lokal testen (ohne Docker)
 
@@ -284,7 +393,9 @@ ein sinnvoller nächster Schritt, um diese Ad-hoc-Checks dauerhaft nutzbar zu ma
   als neues Cog (`cogs/leveling.py` + eigene Tabelle/Spalten in `database/db.py`).
 - **Kein Zurücksetzen von Willkommens-Channel/AutoRole/Embed-Channel auf "nichts"** über
   Dashboard oder Slash-Commands möglich (siehe Punkt 6 oben für Details).
-- **Keine Tests/CI.** Git-Repo ist inzwischen initialisiert (lokal, kein Remote).
+- **Keine automatisierten Tests.** Es gibt eine CI-Pipeline (`.github/workflows/docker-publish.yml`),
+  die aber nur baut/pusht, nicht testet. Git-Repo liegt auf einem privaten GitHub-Remote
+  (`github.com/Lon3lyBlade/discord-mee6-bot`).
 - Flask läuft mit dem eingebauten Dev-Server (`app.run(...)`), nicht mit einem
   Production-WSGI-Server wie gunicorn/waitress — für ein Homelab-Setup bewusst so belassen,
   für mehr Last wäre ein Wechsel sinnvoll.

@@ -84,21 +84,26 @@ Dashboard identisch sein).
 Das Docker-Image wird nicht mehr lokal auf dem Zielhost gebaut: Ein GitHub-Actions-Workflow
 ([`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml)) baut es bei
 jedem Push auf `master` und veröffentlicht es in der GitHub Container Registry als
-`ghcr.io/lon3lyblade/discord-mee6-bot`. Unraids Docker-Tab erkennt darüber von sich aus neue
-Versionen ("Update Ready"-Button).
+`ghcr.io/lon3lyblade/discord-mee6-bot`.
 
-[`deploy.sh`](deploy.sh) zieht dieses Image per SSH auf einen Unraid-Server und startet den
-Container dort neu — praktisch, wenn man nicht auf Unraids automatischen Update-Check warten
-will. Für ein generisches Docker-Setup liegt außerdem eine
-[`docker-compose.yml`](docker-compose.yml) als Referenz bei.
-
-```bash
-bash deploy.sh
-```
+Auf dem Unraid-Server läuft der Container als **von Unraid selbst verwaltetes Docker-Template**
+(über "Add Container" angelegt, nicht per `docker run`/`deploy.sh`) — dadurch erkennt Unraids
+Docker-Tab neue Versionen nativ ("Update Ready") und das Aktualisieren läuft einfach über
+Unraids eigenen **"Apply Update"**-Button, ganz ohne Skript.
 
 Einmalig nötig, da das GitHub-Package privat ist: auf dem Zielhost per
-`docker login ghcr.io -u <dein-github-username>` mit einem Personal Access Token
-(Scope `read:packages`) anmelden.
+`docker login ghcr.io -u <dein-github-username>` mit einem **classic** Personal Access Token
+anmelden, das **beide** Scopes `read:packages` **und** `repo` hat — `read:packages` allein
+reicht laut eigener Erfahrung nicht aus, wenn das Package seine Zugriffsrechte von einem
+privaten Repository erbt ("Inherit access from source repository"), der Pull schlägt sonst mit
+`denied` fehl, obwohl der Login selbst erfolgreich ist.
+
+[`deploy.sh`](deploy.sh) ist ein Überbleibsel aus einer früheren Zwischenlösung (zieht das
+Image per SSH und startet den Container neu) — **auf dem aktuell produktiv laufenden Unraid-
+Container nicht mehr ausführen**, da es den Container per rohem `docker run` neu erstellen
+würde und damit die Unraid-Template-Verwaltung (inkl. des `net.unraid.docker.webui`-Labels für
+den Dashboard-Link) wieder zerstören würde. Für ein generisches Docker-Setup ohne Unraid liegt
+außerdem eine [`docker-compose.yml`](docker-compose.yml) als Referenz bei.
 
 Details zu Zielport, Remote-Verzeichnis und Umgebungsvariablen stehen in
 [`uebergabe.md`](uebergabe.md#deployment).
