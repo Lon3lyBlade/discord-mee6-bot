@@ -9,3 +9,20 @@ services:
     volumes:
       # Lokal äquivalent zum Unraid-Mapping /mnt/user/appdata/mein_botname -> /app/data
       - ./data:/app/data
+    depends_on:
+      - lavalink
+
+  # Lavalink ist eine separate Java-Anwendung (Audio-Backend für das Musik-Feature,
+  # siehe cogs/music.py) und läuft daher bewusst in einem eigenen Container statt im
+  # Bot-Container mitzulaufen. Erst "cp lavalink/application.yml.example
+  # lavalink/application.yml" ausführen und dort die Platzhalter ausfüllen, siehe
+  # README.md für Details.
+  lavalink:
+    image: ghcr.io/lavalink-devs/lavalink:4
+    container_name: discord-bot-lavalink
+    restart: unless-stopped
+    volumes:
+      - ./lavalink/application.yml:/opt/Lavalink/application.yml:ro
+      - ./lavalink/plugins:/opt/Lavalink/plugins
+    expose:
+      - "2333"

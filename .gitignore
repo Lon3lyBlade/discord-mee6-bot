@@ -4,3 +4,8 @@ __pycache__/
 *.sqlite3
 .venv/
 /data/
+
+# Lavalink-Konfiguration enthält das geteilte Passwort + ggf. Spotify-Secrets,
+# Plugins-Verzeichnis enthält von Lavalink selbst heruntergeladene .jar-Dateien.
+/lavalink/application.yml
+/lavalink/plugins/*.jar

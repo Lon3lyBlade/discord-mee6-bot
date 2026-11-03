@@ -21,9 +21,13 @@ Discord-host/
 │   ├── automod.py                 # Einladungslink-Filter + Anti-Spam
 │   ├── moderation.py               # Kick/Ban/Timeout/Warn/Clear-Slash-Commands
 │   ├── tempvoice.py                # Temporäre Sprachkanäle
+│   ├── music.py                   # Musik-Slash-Commands (Wavelink + Lavalink)
 │   └── internal_api.py            # Interne aiohttp-API für Bot<->Dashboard-Kommunikation
 ├── database/
 │   └── db.py                      # Gemeinsame SQLite-DB (aiosqlite)
+├── lavalink/
+│   ├── application.yml.example    # Vorlage für die Lavalink-Konfiguration
+│   └── plugins/                   # Mount-Ziel für von Lavalink geladene Plugin-.jars
 ├── dashboard/
 │   ├── app.py                     # Flask-App: OAuth2-Login, Server-Verwaltung, Embed-Generator
 │   └── templates/
@@ -254,6 +258,58 @@ Git-Repo ist initialisiert, Remote ist ein **privates** GitHub-Repo
   — ersetzt dabei die komplette Liste). `GET .../config` liefert zusätzlich
   `tempvoice_channel_ids` (Liste von Strings).
 
+### 10. Musik (`cogs/music.py`)
+- Nutzt [Wavelink v3](https://github.com/PythonistaGuild/Wavelink) als Client für einen
+  separat laufenden **Lavalink**-Node (eigenständige Java-Anwendung, läuft bewusst in
+  einem eigenen Container/Prozess, nicht im Python-Bot-Container mit — siehe
+  Abschnitt "Deployment" unten für Unraid-spezifische Details).
+- Slash-Commands: `/play query:<song/link>` (sucht automatisch oder verarbeitet direkte
+  URLs von YouTube/YouTube Music/Spotify/Apple Music/SoundCloud; verbindet den Bot bei
+  Bedarf automatisch mit dem Voice-Channel des aufrufenden Nutzers), `/skip`, `/queue`
+  (Embed mit aktuellem Song + den nächsten bis zu 10 Songs), `/stop`/`/leave` (zwei
+  identische Commands für denselben Zweck, wie vom Nutzer gewünscht).
+- `MusicPlayer(wavelink.Player)` ist eine minimale Subklasse, die nur den Text-Channel
+  für die "Jetzt läuft"-Nachricht merkt (`player.text_channel`); `on_wavelink_track_start`
+  postet dort ein Embed mit Titel/Künstler/Cover/Dauer/Quelle, sobald ein Track startet.
+  Die automatische Wiedergabe des nächsten Songs aus der Queue läuft komplett über
+  Wavelinks eigenes `player.autoplay = wavelink.AutoPlayMode.partial` (zieht bei Songende
+  selbstständig den nächsten Track aus `player.queue`) — es gibt bewusst **keinen**
+  eigenen `on_wavelink_track_end`-Handler, der das nochmal manuell nachbauen würde.
+  `AutoPlayMode.enabled` wurde bewusst **nicht** gewählt, da es bei leerer Queue
+  zusätzlich eigenständig ähnliche Songs vorschlägt/einreiht — für dieses Projekt nicht
+  gewünschtes Verhalten.
+- Spotify- und Apple-Music-Links/-Suchen laufen über das
+  [LavaSrc](https://github.com/topi314/LavaSrc)-Plugin auf dem Lavalink-Node: Es löst dort
+  nur Metadaten auf (Titel/Künstler/ISRC), die eigentliche Audio-Wiedergabe erfolgt über
+  eine passende YouTube-Quelle. Das native YouTube-Source von Lavalink ist seit v4
+  entfernt (YouTube blockiert es serverseitig) — stattdessen das offizielle
+  `youtube-source`-Plugin (`dev.lavalink.youtube:youtube-plugin`), SoundCloud läuft nativ.
+  Beide Plugins werden über die `lavalink.plugins`-Liste in `application.yml` beim
+  Lavalink-Start automatisch heruntergeladen (keine manuell gepflegten .jar-Dateien im
+  Repo, `lavalink/plugins/` ist nur das Mount-Ziel dafür).
+- **Fehlerbehandlung:** Ohne gesetztes `LAVALINK_SERVER_PASSWORD` loggt `cog_load()` nur
+  eine Warnung und bricht ab — die Musik-Commands bleiben registriert, scheitern aber mit
+  einer deutschen Fehlermeldung (`wavelink.Pool.nodes` ist dann leer, wird vor der Suche
+  geprüft). **Wichtiger Fallstrick:** `wavelink.Pool.connect()` versucht bei nicht
+  erreichbarem Node **unbegrenzt oft** mit Backoff erneut zu verbinden (siehe
+  `Node._connect`/`Websocket.connect` im Wavelink-Quellcode) — ein direktes `await` davon
+  in `cog_load()` würde bei einem noch nicht bereiten oder dauerhaft nicht erreichbaren
+  Lavalink-Node (z. B. Java-Container, der langsamer startet als der Python-Bot)
+  `setup_hook()` und damit den **kompletten Bot-Start** blockieren, da `bot.py` alle Cogs
+  sequentiell lädt und danach erst die Slash-Commands synct. Deshalb läuft die Verbindung
+  als `asyncio.create_task()` im Hintergrund (`self._connect_task`), `cog_unload()` bricht
+  diesen Task ab und schließt den Pool. Beim Weiterarbeiten an diesem Cog **nicht**
+  versehentlich zurück auf ein direktes `await wavelink.Pool.connect(...)` wechseln.
+  Sonstige Fehler (ungültiger Link → `wavelink.LavalinkLoadException`, keine Ergebnisse,
+  fehlende Berechtigung/Timeout beim Voice-Connect) werden pro Command einzeln abgefangen.
+- Erfordert `discord.Intents.default()`s `voice_states` (nicht-privilegiert, bereits
+  standardmäßig aktiv in `bot.py` — keine Änderung an den Intents nötig).
+- **Kein Dashboard-Pendant.** Reine Slash-Command-Funktionalität, analog zu Moderation.
+- **Bekannte Lücken:** kein `/pause`/`/resume`/`/volume`/`/nowplaying`, keine
+  Berechtigungsprüfung (jeder Nutzer im Voice-Channel darf `/skip`/`/stop` ausführen),
+  kein automatisches Verlassen des Kanals bei Inaktivität/leerem Voice-Channel. Bewusst
+  nicht in Scope der ursprünglichen Anforderung, aber naheliegende Erweiterungen.
+
 ### 5. Datenbank (`database/db.py`)
 - Eine Tabelle `guild_config (guild_id PK, welcome_channel_id, auto_role_id,
   mod_log_channel_id)` für alle 1:1-Konfigurationswerte pro Server.
@@ -291,6 +347,13 @@ hartkodiert**. `load_dotenv()` ist nur ein optionaler Komfort für lokale Entwic
 - `DB_PATH` (`/app/data/database.db`)
 - `OAUTH_INSECURE_TRANSPORT` (`1` = http erlaubt für OAuth-Redirect; auf `0` setzen, sobald
   ein HTTPS-Reverse-Proxy vorgeschaltet ist)
+- `LAVALINK_SERVER_PASSWORD` (Musik-System, siehe Punkt 10) — bewusst **kein** Pflichtwert
+  (kein `RuntimeError`), da das Musik-Feature optional ist; ist die Variable nicht gesetzt,
+  bleibt nur `cogs/music.py` funktionslos, der restliche Bot läuft normal weiter. Name ist
+  bewusst identisch zu Lavalinks eigener `application.yml`-Variable gewählt (geteiltes
+  Geheimnis zwischen Bot und Lavalink-Node, analog zu `INTERNAL_API_SECRET`).
+  `LAVALINK_HOST` (Default `lavalink`, der Service-Name aus `docker-compose.yml`),
+  `LAVALINK_PORT` (Default `2333`), `LAVALINK_SECURE` (Default `false`).
 
 Siehe `.env.example` für die vollständige, kommentierte Liste.
 
@@ -361,6 +424,19 @@ damit nichts versehentlich auf einen früheren Zwischenstand zurückgedreht wird
 `docker-compose.yml` bleibt als generisches Referenz-Setup für Nicht-Unraid-Hosts im Repo
 (nutzt andere Default-Werte für Name/Port als das Unraid-Setup — falls daran weitergearbeitet
 wird, nicht mit dem Unraid-Setup verwechseln).
+
+### Lavalink (Musik-System) auf Unraid
+
+Lavalink ist eine eigenständige Java-Anwendung (siehe Punkt 10 oben) und läuft **nicht**
+im Bot-Container mit. Für Unraid bedeutet das: ein **zweiter, separater Unraid-Container**
+ist nötig (z. B. das "Lavalink"-Template aus Community Apps, oder manuell über "Add
+Container" mit Image `ghcr.io/lavalink-devs/lavalink:4`, Port 2333, `application.yml` als
+Pfad-Mapping nach `/opt/Lavalink/application.yml`, `plugins/`-Ordner nach
+`/opt/Lavalink/plugins`). Im Bot-Container-Template dann `LAVALINK_HOST`/`LAVALINK_PORT`
+auf die IP/den Hostnamen dieses zweiten Containers setzen, `LAVALINK_SERVER_PASSWORD`
+identisch zum Passwort in dessen `application.yml`. Für lokale/generische Docker-Hosts
+übernimmt `docker-compose.yml` das bereits selbst (eigener `lavalink`-Service im selben
+Compose-Netzwerk, erreichbar unter dem Hostnamen `lavalink`).
 
 ## Lokal testen (ohne Docker)
 

@@ -1,0 +1,89 @@
+# Vorlage für die Lavalink-Konfiguration. Kopieren nach "application.yml" (bleibt
+# ungetrackt, siehe .gitignore) und die Platzhalter unten ausfüllen.
+#
+# WICHTIG: "password" hier MUSS identisch mit LAVALINK_SERVER_PASSWORD in der .env
+# des Bots sein (gemeinsames Geheimnis, analog zu INTERNAL_API_SECRET).
+#
+# Spotify-Zugangsdaten: kostenlose App unter https://developer.spotify.com/dashboard
+# anlegen (Client-ID + Client-Secret, kein spezieller API-Zugriff nötig, da LavaSrc nur
+# Metadaten von Spotify holt und die eigentliche Wiedergabe über YouTube auflöst).
+# Apple Music benötigt kein eigenes Secret - LavaSrc holt sich automatisch einen
+# anonymen Media-API-Token (mediaAPIToken darf leer bleiben).
+
+server:
+  port: 2333
+  address: 0.0.0.0
+
+lavalink:
+  server:
+    password: "bitte-durch-denselben-wert-wie-LAVALINK_SERVER_PASSWORD-ersetzen"
+    sources:
+      # Natives YouTube-Source ist seit Lavalink v4 entfernt - übernimmt das
+      # youtube-source-Plugin unten.
+      youtube: false
+      soundcloud: true
+      bandcamp: true
+      twitch: true
+      vimeo: true
+      http: true
+      local: false
+    bufferDurationMs: 400
+    frameBufferDurationMs: 5000
+    opusEncodingQuality: 10
+    resamplingQuality: LOW
+    trackStuckThresholdMs: 10000
+    useSeekGhosting: true
+    playerUpdateInterval: 5
+    youtubePlaylistLoadLimit: 6
+    soundcloudSearchEnabled: true
+  plugins:
+    - dependency: "dev.lavalink.youtube:youtube-plugin:1.11.4"
+      repository: "https://maven.lavalink.dev/releases"
+    - dependency: "com.github.topi314.lavasrc:lavasrc-plugin:4.2.0"
+      repository: "https://maven.lavalink.dev/releases"
+
+plugins:
+  youtube:
+    enabled: true
+    allowSearch: true
+    allowDirectVideoIds: true
+    allowDirectPlaylistIds: true
+    clients:
+      - MUSIC
+      - ANDROID_VR
+      - WEB
+      - WEBEMBEDDED
+  lavasrc:
+    providers:
+      - "ytsearch:\"%ISRC%\""
+      - "ytsearch:%QUERY%"
+    sources:
+      spotify: true
+      applemusic: true
+      youtube: true
+      deezer: false
+      yandexmusic: false
+      flowerytts: false
+    spotify:
+      clientId: "deine-spotify-client-id"
+      clientSecret: "dein-spotify-client-secret"
+      countryCode: "DE"
+      playlistLoadLimit: 6
+      albumLoadLimit: 6
+    applemusic:
+      countryCode: "DE"
+      mediaAPIToken: ""
+      playlistLoadLimit: 6
+      albumLoadLimit: 6
+
+metrics:
+  prometheus:
+    enabled: false
+
+sentry:
+  dsn: ""
+
+logging:
+  level:
+    root: INFO
+    lavalink: INFO

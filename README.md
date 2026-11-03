@@ -24,6 +24,10 @@ Dashboard laufen **in einem einzigen Docker-Container** als zwei Prozesse.
   Vielleicht-Buttons (Live-Teilnehmerliste, persistent über Bot-Neustarts). Optional kann
   eine Ziel-Rolle angegeben werden, auf die der Bot den Channel beschränkt. Events lassen
   sich zusätzlich komplett im Dashboard erstellen, bearbeiten und absagen.
+- **Musik** — plattformübergreifende Musikwiedergabe über einen Lavalink-Node
+  (`/play`, `/skip`, `/queue`, `/stop`/`/leave`) von YouTube/YouTube Music, Spotify, Apple
+  Music und SoundCloud. Benötigt einen separat laufenden Lavalink-Server, siehe
+  [Musik-System (Lavalink)](#musik-system-lavalink) unten.
 - **Web-Dashboard** — Discord-OAuth2-Login, Übersicht aller Server mit Adminrechten, pro
   Server eigene Seiten für Einstellungen (Willkommens-Channel, AutoRole), TempVoice-Kanäle,
   Events/Kalender und einen Embed-Generator (Author/Footer/Thumbnail/Bild-Upload, dynamische
@@ -41,6 +45,7 @@ Discord-host/
 │   ├── moderation.py               # Kick/Ban/Timeout/Warn/Clear-Slash-Commands
 │   ├── tempvoice.py                # Temporäre Sprachkanäle
 │   ├── events.py                  # Event-/Kalendersystem mit RSVP-Buttons
+│   ├── music.py                   # Musik-Slash-Commands (Wavelink + Lavalink)
 │   └── internal_api.py            # Interne aiohttp-API für Bot<->Dashboard-Kommunikation
 ├── database/
 │   └── db.py                      # Gemeinsame SQLite-DB (aiosqlite)
@@ -56,6 +61,9 @@ Discord-host/
 │       ├── tempvoice.html         # TempVoice-Kanalauswahl
 │       ├── events.html            # Event-/Kalender-Übersicht + Erstellen/Bearbeiten
 │       └── embed_builder.html     # Embed-Generator
+├── lavalink/
+│   ├── application.yml.example    # Vorlage für die Lavalink-Konfiguration (Musik-System)
+│   └── plugins/                   # Mount-Ziel für die von Lavalink geladenen Plugin-.jars
 ├── .github/workflows/
 │   └── docker-publish.yml         # Baut + pusht das Docker-Image nach ghcr.io bei Push auf master
 ├── Dockerfile                     # Ein Image für Bot + Dashboard
@@ -84,6 +92,34 @@ Pflicht-Umgebungsvariablen (siehe [`.env.example`](.env.example) für die vollst
 Liste): `DISCORD_TOKEN`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`,
 `DISCORD_REDIRECT_URI`, `FLASK_SECRET_KEY`, `INTERNAL_API_SECRET` (muss bei Bot und
 Dashboard identisch sein).
+
+## Musik-System (Lavalink)
+
+Das Musik-Feature (`cogs/music.py`) nutzt [Wavelink](https://github.com/PythonistaGuild/Wavelink)
+als Client für einen separat laufenden [Lavalink](https://github.com/lavalink-devs/Lavalink)-
+Node. Lavalink ist eine eigenständige Java-Anwendung und läuft daher **immer in einem
+eigenen Container/Prozess**, nicht im Python-Bot-Container mit.
+
+- **Lokal / generischer Docker-Host:** `docker-compose.yml` enthält bereits einen
+  `lavalink`-Service. Einmalig `cp lavalink/application.yml.example
+  lavalink/application.yml` ausführen und darin das Passwort (identisch zu
+  `LAVALINK_SERVER_PASSWORD` in der `.env`) sowie optional Spotify-Client-ID/-Secret
+  eintragen (siehe Kommentare in der Datei), dann `docker compose up -d`.
+- **Unraid:** Da der produktive Bot-Container dort als eigenes, von Unraid verwaltetes
+  Template läuft (kein `docker-compose`, siehe Abschnitt "Deployment" unten), muss
+  Lavalink dort als **zweiter, separater Unraid-Container** angelegt werden (z. B. über
+  das "Lavalink"-Template aus Community Apps, oder manuell mit dem Image
+  `ghcr.io/lavalink-devs/lavalink:4`, Port 2333, `application.yml` als Pfad-Mapping). Im
+  Bot-Container-Template dann `LAVALINK_HOST`/`LAVALINK_PORT` auf die IP/den Hostnamen
+  dieses zweiten Containers setzen.
+- Ohne gesetztes `LAVALINK_SERVER_PASSWORD` bzw. ohne erreichbaren Lavalink-Node bleiben
+  die Musik-Slash-Commands einfach deaktiviert (freundliche Fehlermeldung statt Crash) —
+  der restliche Bot startet unabhängig davon ganz normal.
+- Spotify- und Apple-Music-Links/-Suchen laufen über das
+  [LavaSrc](https://github.com/topi314/LavaSrc)-Plugin: Es löst dort nur Metadaten auf,
+  die eigentliche Wiedergabe erfolgt über die passende YouTube-Quelle. Dafür wird (kostenlos)
+  eine Spotify-App unter https://developer.spotify.com/dashboard benötigt; Apple Music
+  braucht kein eigenes Secret.
 
 ## Deployment
 
