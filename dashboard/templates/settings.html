@@ -4,10 +4,17 @@
 {% block page_content %}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
         <form method="post" action="{{ url_for('set_welcome_channel', guild_id=guild.id) }}"
-              class="relative rounded-xl border border-slate-800 bg-[#1e293b] p-6 space-y-4 overflow-hidden">
+              class="relative rounded-2xl border border-slate-800 bg-[#1e293b] p-6 space-y-4 overflow-hidden">
             <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
             <div class="relative space-y-4">
-                <h2 class="font-semibold">Willkommensnachricht</h2>
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-900/30">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                    </div>
+                    <h2 class="font-semibold truncate">Willkommensnachricht</h2>
+                </div>
                 <p class="text-sm text-slate-400">
                     Channel, in dem neue Mitglieder automatisch begrüßt werden.
                 </p>
@@ -40,10 +47,17 @@
         </form>
 
         <form method="post" action="{{ url_for('set_autorole', guild_id=guild.id) }}"
-              class="relative rounded-xl border border-slate-800 bg-[#1e293b] p-6 space-y-4 overflow-hidden">
+              class="relative rounded-2xl border border-slate-800 bg-[#1e293b] p-6 space-y-4 overflow-hidden">
             <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
             <div class="relative space-y-4">
-                <h2 class="font-semibold">AutoRole</h2>
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shrink-0 shadow-lg shadow-amber-900/30">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622a11.955 11.955 0 01-8.618-3.04L12 2.944z" />
+                        </svg>
+                    </div>
+                    <h2 class="font-semibold truncate">AutoRole</h2>
+                </div>
                 <p class="text-sm text-slate-400">
                     Rolle, die neue Mitglieder automatisch beim Beitritt erhalten.
                 </p>
@@ -77,26 +91,45 @@
             </div>
         </form>
 
-        <div class="relative rounded-xl border border-slate-800 bg-[#1e293b] p-6 overflow-hidden">
+        <div class="relative rounded-2xl border border-slate-800 bg-[#1e293b] p-6 overflow-hidden">
             <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
             <div class="relative">
-                <h2 class="font-semibold mb-1">Server-Statistiken</h2>
+                <div class="flex items-center gap-3 mb-1">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-fuchsia-600 to-pink-600 flex items-center justify-center shrink-0 shadow-lg shadow-fuchsia-900/30">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm6 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0V5a2 2 0 012-2h0a2 2 0 012 2v14" />
+                        </svg>
+                    </div>
+                    <h2 class="font-semibold truncate">Server-Statistiken</h2>
+                </div>
                 <p class="text-sm text-slate-400 mb-4">Live vom Bot abgerufen.</p>
                 <div class="space-y-3">
                     <div class="flex items-center justify-between text-sm">
-                        <span class="text-slate-400">Mitglieder gesamt</span>
+                        <span class="flex items-center gap-2 text-slate-400">
+                            <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                            Mitglieder gesamt
+                        </span>
                         <span class="font-semibold">{{ stats.member_count if stats else '—' }}</span>
                     </div>
                     <div class="flex items-center justify-between text-sm">
-                        <span class="text-slate-400">Text-Channels</span>
+                        <span class="flex items-center gap-2 text-slate-400">
+                            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                            Text-Channels
+                        </span>
                         <span class="font-semibold">{{ stats.text_channel_count if stats else '—' }}</span>
                     </div>
                     <div class="flex items-center justify-between text-sm">
-                        <span class="text-slate-400">Voice-Channels</span>
+                        <span class="flex items-center gap-2 text-slate-400">
+                            <span class="w-2 h-2 rounded-full bg-fuchsia-500"></span>
+                            Voice-Channels
+                        </span>
                         <span class="font-semibold">{{ stats.voice_channel_count if stats else '—' }}</span>
                     </div>
                     <div class="flex items-center justify-between text-sm">
-                        <span class="text-slate-400">Rollen</span>
+                        <span class="flex items-center gap-2 text-slate-400">
+                            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                            Rollen
+                        </span>
                         <span class="font-semibold">{{ roles | length if roles else '—' }}</span>
                     </div>
                 </div>

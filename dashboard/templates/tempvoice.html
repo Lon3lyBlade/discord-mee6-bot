@@ -2,23 +2,31 @@
 {% block title %}TempVoice verwalten{% endblock %}
 
 {% block page_content %}
-    <h2 class="text-xl font-bold mb-1">Temporäre Sprachkanäle</h2>
+    <div class="flex items-center gap-3 mb-1">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center shrink-0 shadow-lg shadow-blue-900/30">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728" />
+            </svg>
+        </div>
+        <h2 class="text-xl font-bold">Temporäre Sprachkanäle</h2>
+    </div>
     <p class="text-slate-400 mb-6">
         Wähle beliebig viele Sprachkanäle aus. Tritt jemand einem davon bei, erstellt der Bot
         automatisch einen eigenen Kanal für diese Person (in derselben Kategorie) und verschiebt
         sie sofort dorthin. Verlässt die Person den Kanal wieder und er ist leer, wird er gelöscht.
     </p>
     <form method="post" action="{{ url_for('set_tempvoice_channels', guild_id=guild.id) }}"
-          class="relative rounded-xl border border-slate-800 bg-[#1e293b] p-6 overflow-hidden">
+          class="relative rounded-2xl border border-slate-800 bg-[#1e293b] p-6 overflow-hidden">
         <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
         <div class="relative space-y-4">
             {% if voice_channels %}
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-72 overflow-y-auto pr-1">
                     {% for channel in voice_channels %}
-                        <label class="flex items-center gap-2 text-sm bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 cursor-pointer hover:border-slate-500 transition-colors">
+                        <label class="flex items-center gap-2 text-sm bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 cursor-pointer hover:border-cyan-500/60 has-[:checked]:border-cyan-500 has-[:checked]:bg-cyan-500/10 transition-colors">
                             <input type="checkbox" name="channel_ids" value="{{ channel.id }}"
                                    {% if channel.id in config.tempvoice_channel_ids %}checked{% endif %}
-                                   class="rounded border-slate-700 bg-[#0f172a] text-indigo-500 focus:ring-indigo-500">
+                                   class="rounded border-slate-700 bg-[#0f172a] text-cyan-500 focus:ring-cyan-500">
                             <span class="truncate">🔊 {{ channel.name }}</span>
                         </label>
                     {% endfor %}
@@ -27,7 +35,7 @@
                 <p class="text-sm text-slate-500">Dieser Server hat keine Sprachkanäle.</p>
             {% endif %}
             <button type="submit"
-                    class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:brightness-110 transition-all text-white font-semibold py-2.5 px-6 rounded-lg">
+                    class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:brightness-110 transition-all text-white font-semibold py-2.5 px-6 rounded-lg">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                 </svg>

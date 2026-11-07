@@ -2,7 +2,17 @@
 {% block title %}Embed-Generator{% endblock %}
 
 {% block page_content %}
-    <h2 class="text-xl font-bold mb-1">Embed-Generator</h2>
+    <div class="flex items-center gap-3 mb-1">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shrink-0 shadow-lg shadow-violet-900/30">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+        </div>
+        <h2 class="text-xl font-bold">Embed-Generator</h2>
+    </div>
     <p class="text-slate-400 mb-6">
         Erstelle eine eingebettete Nachricht, die der Bot direkt in einen Channel dieses Servers postet.
     </p>
@@ -10,7 +20,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <form method="post" action="{{ url_for('send_embed', guild_id=guild.id) }}"
               enctype="multipart/form-data"
-              class="relative rounded-xl border border-slate-800 bg-[#1e293b] p-6 space-y-4 overflow-hidden">
+              class="relative rounded-2xl border border-slate-800 bg-[#1e293b] p-6 space-y-4 overflow-hidden">
             <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
             <div class="relative space-y-4">
                 <div>
@@ -112,7 +122,7 @@
                 </div>
 
                 <button type="submit"
-                        class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:brightness-110 transition-all text-white font-semibold py-2.5 rounded-lg">
+                        class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:brightness-110 transition-all text-white font-semibold py-2.5 rounded-lg">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                     </svg>
@@ -123,7 +133,10 @@
 
         <div>
             <div class="flex items-center justify-between mb-2">
-                <p class="text-sm font-medium text-slate-300">Vorschau</p>
+                <p class="text-sm font-medium text-slate-300 flex items-center gap-2">
+                    Vorschau
+                    <span class="text-[10px] uppercase tracking-wide font-semibold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">Live</span>
+                </p>
                 <div class="flex items-center gap-2">
                     <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -136,7 +149,7 @@
                     </select>
                 </div>
             </div>
-            <div class="relative rounded-xl border border-slate-800 bg-[#1e293b] p-4 overflow-hidden">
+            <div class="relative rounded-2xl border border-slate-800 bg-[#1e293b] p-4 overflow-hidden">
                 <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
                 <div id="embed-preview-wrapper" class="relative transition-all">
                     <div id="embed-preview-card" class="bg-[#2b2d31] rounded-lg p-4 border-l-4 flex gap-4" style="border-color: #5865F2;">
