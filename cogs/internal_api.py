@@ -71,6 +71,7 @@ class InternalAPI(commands.Cog):
         app.router.add_get("/api/guilds/{guild_id}/channels", self._handle_get_channels)
         app.router.add_get("/api/guilds/{guild_id}/voice-channels", self._handle_get_voice_channels)
         app.router.add_get("/api/guilds/{guild_id}/roles", self._handle_get_roles)
+        app.router.add_get("/api/guilds/{guild_id}/roles/all", self._handle_get_all_roles)
         app.router.add_get("/api/guilds/{guild_id}/config", self._handle_get_config)
         app.router.add_post("/api/guilds/{guild_id}/welcome-channel", self._handle_set_welcome_channel)
         app.router.add_post("/api/guilds/{guild_id}/autorole", self._handle_set_autorole)
@@ -165,6 +166,17 @@ class InternalAPI(commands.Cog):
             for r in guild.roles
             if self._is_assignable_role(guild, r)
         ]
+        return web.json_response({"roles": roles})
+
+    async def _handle_get_all_roles(self, request: web.Request) -> web.Response:
+        # Ungefilterte Rollenliste (nur @everyone ausgeschlossen) für Stellen, an denen der
+        # Bot keine Rolle selbst vergibt, sondern nur ihre Mitgliedschaft prüft (z. B. die
+        # XP-Ausschlussliste im Level-System) oder der Nutzer alle Rollen sehen soll, bevor
+        # eine Auswahl ggf. als nicht vergebbar abgelehnt wird (z. B. Level-Belohnungen).
+        guild = self._get_guild(request)
+        if guild is None:
+            return web.json_response({"error": "Bot ist auf diesem Server nicht vorhanden"}, status=404)
+        roles = [{"id": str(r.id), "name": r.name} for r in guild.roles if not r.is_default()]
         return web.json_response({"roles": roles})
 
     async def _handle_get_config(self, request: web.Request) -> web.Response:
