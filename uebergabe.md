@@ -22,6 +22,7 @@ Discord-host/
 │   ├── moderation.py               # Kick/Ban/Timeout/Warn/Clear-Slash-Commands
 │   ├── tempvoice.py                # Temporäre Sprachkanäle
 │   ├── music.py                   # Musik-Slash-Commands (Wavelink + Lavalink)
+│   ├── leveling.py                 # XP-/Level-System (/rank, /leaderboard)
 │   └── internal_api.py            # Interne aiohttp-API für Bot<->Dashboard-Kommunikation
 ├── database/
 │   └── db.py                      # Gemeinsame SQLite-DB (aiosqlite)
@@ -38,6 +39,7 @@ Discord-host/
 │       ├── settings.html          # Willkommens-Channel + AutoRole
 │       ├── moderation.html         # Mod-Log-Channel + Verwarnungs-Übersicht
 │       ├── tempvoice.html         # TempVoice-Kanalauswahl
+│       ├── levels.html            # Leaderboard + Level-System-Einstellungen
 │       └── embed_builder.html     # Embed-Generator
 ├── .github/workflows/
 │   └── docker-publish.yml         # Baut + pusht das Docker-Image nach ghcr.io bei Push auf master
@@ -310,9 +312,40 @@ Git-Repo ist initialisiert, Remote ist ein **privates** GitHub-Repo
   kein automatisches Verlassen des Kanals bei Inaktivität/leerem Voice-Channel. Bewusst
   nicht in Scope der ursprünglichen Anforderung, aber naheliegende Erweiterungen.
 
+### 11. Level-System (`cogs/leveling.py`)
+- `on_message` vergibt 15–25 zufällige XP pro Nachricht (ignoriert Bots und DMs), mit
+  einem rein **im Speicher gehaltenen** 60-Sekunden-Cooldown pro `(guild_id, user_id)`
+  (`self._last_xp_at`, kein DB-Zugriff fürs Cooldown-Tracking — geht bei Bot-Neustart
+  verloren, das ist hier bewusst in Ordnung, da es nur Spam-Schutz ist, keine Nutzerdaten).
+- Level-Formel: `level = int((xp / 100) ** 0.5)` (`db.compute_level()`), Umkehrung
+  `xp_for_level(level) = level**2 * 100` liefert die minimale XP-Schwelle für ein Level —
+  wird für den Fortschrittsbalken in `/rank` gebraucht.
+- Pro Guild abschaltbar (`guild_config.xp_enabled`) sowie pro Channel/Rolle ausschließbar
+  (`level_excluded_channels`/`level_excluded_roles`, siehe Datenbankabschnitt) — alles rein
+  über das Dashboard konfigurierbar, keine eigenen Slash-Commands dafür.
+- Bei Level-Aufstieg abhängig von `guild_config.levelup_notify_mode` (`chat` = Embed im
+  Nachrichten-Channel, `dm` = Embed per DM, `disabled` = keine Nachricht).
+- Slash-Commands: `/rank [user]` (Embed mit Level, XP, XP bis zum nächsten Level und
+  Text-Fortschrittsbalken aus `█`/`░`), `/leaderboard` (Top 10 der Guild nach XP, mit
+  Medaillen-Emojis für die ersten drei Plätze).
+- **Dashboard-Pendant:** `/server/<guild_id>/levels` zeigt das komplette Leaderboard
+  (alle Nutzer, nicht nur Top 10) und erlaubt An-/Abschalten der XP-Vergabe, die
+  Level-Up-Benachrichtigung sowie ausgeschlossene Channels/Rollen. Läuft über neue
+  Endpunkte in `cogs/internal_api.py` (`/api/guilds/<id>/levels`, `.../levels/config`,
+  `.../levels/excluded-channels`, `.../levels/excluded-roles`).
+- **Bekannte Lücken:** kein konfigurierbarer XP-Range oder Cooldown-Wert übers Dashboard
+  (aktuell Konstanten im Cog), keine Level-Rollen-Belohnungen (z. B. automatische Rolle
+  bei Level X) — naheliegende Erweiterung, aber nicht Teil der ursprünglichen Anforderung.
+
 ### 5. Datenbank (`database/db.py`)
 - Eine Tabelle `guild_config (guild_id PK, welcome_channel_id, auto_role_id,
-  mod_log_channel_id)` für alle 1:1-Konfigurationswerte pro Server.
+  mod_log_channel_id, xp_enabled, levelup_notify_mode)` für alle 1:1-Konfigurationswerte
+  pro Server.
+- `user_levels (guild_id, user_id, xp, level, PK(guild_id, user_id))` für die persistenten
+  XP-/Level-Stände des Level-Systems (siehe Punkt 11), plus `level_excluded_channels` und
+  `level_excluded_roles` (jeweils `guild_id, channel_id`/`role_id`, PK auf beiden Spalten)
+  für die Dashboard-Ausschlusslisten — analog zum Muster von
+  `tempvoice_creator_channels` unten (n:1-Daten, eigene Tabelle statt Spalte).
 - `tempvoice_creator_channels (guild_id, channel_id, PK(guild_id, channel_id))` — bewusst
   **eigene Tabelle statt einer Spalte** in `guild_config`, weil beliebig viele Ersteller-
   Kanäle pro Server möglich sind (n:1-Daten, siehe Punkt 9). `set_tempvoice_creator_channels()`
