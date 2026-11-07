@@ -37,7 +37,7 @@ lavalink:
     youtubePlaylistLoadLimit: 6
     soundcloudSearchEnabled: true
   plugins:
-    - dependency: "dev.lavalink.youtube:youtube-plugin:1.11.4"
+    - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.2"
       repository: "https://maven.lavalink.dev/releases"
     - dependency: "com.github.topi314.lavasrc:lavasrc-plugin:4.2.0"
       repository: "https://maven.lavalink.dev/releases"
@@ -48,11 +48,24 @@ plugins:
     allowSearch: true
     allowDirectVideoIds: true
     allowDirectPlaylistIds: true
+    # Von den youtube-source-Clients unterstützt laut dessen README NUR "TV" OAuth
+    # (und braucht es sogar zwingend für Wiedergabe) - MUSIC liefert nur die
+    # ytmsearch-Suche (kann selbst nicht abspielen), WEB/MWEB sind solide
+    # Playback-Fallbacks für nicht gesperrte Videos ohne Login-Zwang.
     clients:
       - MUSIC
-      - ANDROID_VR
       - WEB
-      - WEBEMBEDDED
+      - MWEB
+      - TV
+    # YouTube verlangt inzwischen für viele Videos/Server-IPs ein eingeloggtes Konto
+    # ("This video requires login"). Beim ersten Start (oauth.enabled: true, kein
+    # refreshToken) druckt Lavalink in sein Log eine Geräte-Autorisierungs-URL + Code;
+    # die muss im Browser mit einem Google-Konto bestätigt werden (idealerweise ein
+    # separates/Wegwerf-Konto, nicht das Hauptkonto). Danach den von Lavalink
+    # geloggten refreshToken hier eintragen, damit der Login Neustarts übersteht.
+    oauth:
+      enabled: true
+      refreshToken: ""
   lavasrc:
     providers:
       - "ytsearch:\"%ISRC%\""
