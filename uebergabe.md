@@ -328,14 +328,31 @@ Git-Repo ist initialisiert, Remote ist ein **privates** GitHub-Repo
 - Slash-Commands: `/rank [user]` (Embed mit Level, XP, XP bis zum nächsten Level und
   Text-Fortschrittsbalken aus `█`/`░`), `/leaderboard` (Top 10 der Guild nach XP, mit
   Medaillen-Emojis für die ersten drei Plätze).
+- **Level-Rollen-Belohnungen:** Beliebig viele Level→Rolle-Zuordnungen pro Guild
+  (`level_rewards`, siehe Datenbankabschnitt). `_apply_level_rewards()` läuft bei jedem
+  Level-Aufstieg direkt nach `_announce_levelup()`: Es wird die Rolle der **höchsten
+  erreichten** Stufe vergeben, alle **anderen** konfigurierten Level-Rollen werden dem
+  Mitglied gleichzeitig entfernt (MEE6-Stil, bewusst **nicht kumulativ** — war eine
+  explizite Nutzerentscheidung, keine Altlast). Nutzt dieselbe
+  `_is_assignable_role()`-Prüfung wie AutoRole (keine `@everyone`-Rolle, keine Rolle auf/
+  über der höchsten Bot-Rolle), sonst würde `add_roles()` zur Laufzeit mit
+  `discord.Forbidden` fehlschlagen. Rückwirkende Vergabe für bereits vor dem Anlegen einer
+  neuen Stufe hochgelevelte Mitglieder passiert **nicht automatisch** — die Zuordnung wird
+  erst beim nächsten Level-Aufstieg dieses Mitglieds angewendet (kein Sync-Button im
+  Dashboard, bewusst nicht im Scope).
+- Slash-Commands: `/rank [user]` (Embed mit Level, XP, XP bis zum nächsten Level und
+  Text-Fortschrittsbalken aus `█`/`░`), `/leaderboard` (Top 10 der Guild nach XP, mit
+  Medaillen-Emojis für die ersten drei Plätze).
 - **Dashboard-Pendant:** `/server/<guild_id>/levels` zeigt das komplette Leaderboard
-  (alle Nutzer, nicht nur Top 10) und erlaubt An-/Abschalten der XP-Vergabe, die
-  Level-Up-Benachrichtigung sowie ausgeschlossene Channels/Rollen. Läuft über neue
+  (alle Nutzer, nicht nur Top 10), erlaubt An-/Abschalten der XP-Vergabe, die
+  Level-Up-Benachrichtigung, ausgeschlossene Channels/Rollen sowie die Level-Rollen-
+  Belohnungen (hinzufügen/löschen einzelner Level→Rolle-Zuordnungen). Läuft über neue
   Endpunkte in `cogs/internal_api.py` (`/api/guilds/<id>/levels`, `.../levels/config`,
-  `.../levels/excluded-channels`, `.../levels/excluded-roles`).
+  `.../levels/excluded-channels`, `.../levels/excluded-roles`, `.../levels/rewards`,
+  `.../levels/rewards/<level>/delete`).
 - **Bekannte Lücken:** kein konfigurierbarer XP-Range oder Cooldown-Wert übers Dashboard
-  (aktuell Konstanten im Cog), keine Level-Rollen-Belohnungen (z. B. automatische Rolle
-  bei Level X) — naheliegende Erweiterung, aber nicht Teil der ursprünglichen Anforderung.
+  (aktuell Konstanten im Cog), kein rückwirkendes Anwenden von Level-Rollen-Belohnungen
+  auf bereits vorhandene Mitglieder (siehe oben).
 
 ### 5. Datenbank (`database/db.py`)
 - Eine Tabelle `guild_config (guild_id PK, welcome_channel_id, auto_role_id,
@@ -346,6 +363,11 @@ Git-Repo ist initialisiert, Remote ist ein **privates** GitHub-Repo
   `level_excluded_roles` (jeweils `guild_id, channel_id`/`role_id`, PK auf beiden Spalten)
   für die Dashboard-Ausschlusslisten — analog zum Muster von
   `tempvoice_creator_channels` unten (n:1-Daten, eigene Tabelle statt Spalte).
+- `level_rewards (guild_id, level, role_id, PK(guild_id, level))` für die Level-Rollen-
+  Belohnungen. PK bewusst auf `(guild_id, level)` statt `(guild_id, role_id)`, damit pro
+  Level **genau eine** Rolle hinterlegt werden kann (`set_level_reward()` ist ein Upsert,
+  der die Rolle für ein bereits existierendes Level überschreibt) — dieselbe Rolle könnte
+  aber theoretisch mehreren Leveln zugeordnet werden, das wird aktuell nicht verhindert.
 - `tempvoice_creator_channels (guild_id, channel_id, PK(guild_id, channel_id))` — bewusst
   **eigene Tabelle statt einer Spalte** in `guild_config`, weil beliebig viele Ersteller-
   Kanäle pro Server möglich sind (n:1-Daten, siehe Punkt 9). `set_tempvoice_creator_channels()`

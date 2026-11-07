@@ -68,6 +68,16 @@ async def init_db() -> None:
         )
         await db.execute(
             """
+            CREATE TABLE IF NOT EXISTS level_rewards (
+                guild_id INTEGER NOT NULL,
+                level INTEGER NOT NULL,
+                role_id INTEGER NOT NULL,
+                PRIMARY KEY (guild_id, level)
+            )
+            """
+        )
+        await db.execute(
+            """
             CREATE TABLE IF NOT EXISTS tempvoice_creator_channels (
                 guild_id INTEGER NOT NULL,
                 channel_id INTEGER NOT NULL,
@@ -531,3 +541,35 @@ async def get_leaderboard(guild_id: int, limit: int | None = 10) -> list[dict]:
     async with aiosqlite.connect(DB_PATH) as db:
         async with db.execute(query, params) as cursor:
             return [{"user_id": row[0], "xp": row[1], "level": row[2]} async for row in cursor]
+
+
+async def set_level_reward(guild_id: int, level: int, role_id: int) -> None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """
+            INSERT INTO level_rewards (guild_id, level, role_id)
+            VALUES (?, ?, ?)
+            ON CONFLICT(guild_id, level) DO UPDATE SET role_id = excluded.role_id
+            """,
+            (guild_id, level, role_id),
+        )
+        await db.commit()
+
+
+async def delete_level_reward(guild_id: int, level: int) -> bool:
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            "DELETE FROM level_rewards WHERE guild_id = ? AND level = ?",
+            (guild_id, level),
+        )
+        await db.commit()
+        return cursor.rowcount > 0
+
+
+async def get_level_rewards(guild_id: int) -> list[dict]:
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            "SELECT level, role_id FROM level_rewards WHERE guild_id = ? ORDER BY level ASC",
+            (guild_id,),
+        ) as cursor:
+            return [{"level": row[0], "role_id": row[1]} async for row in cursor]

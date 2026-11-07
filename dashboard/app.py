@@ -455,10 +455,16 @@ def fetch_levels_data(guild_id: str):
             timeout=5,
         )
         level_config = config_response.json()
+        rewards_response = requests.get(
+            f"{BOT_API_URL}/api/guilds/{guild_id}/levels/rewards",
+            headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
+            timeout=5,
+        )
+        rewards = rewards_response.json()["rewards"]
     except requests.RequestException:
         return "unreachable", None
 
-    return None, {"leaderboard": leaderboard, "level_config": level_config}
+    return None, {"leaderboard": leaderboard, "level_config": level_config, "rewards": rewards}
 
 
 @app.route("/server/<guild_id>/levels")
@@ -487,6 +493,7 @@ def levels_page(guild_id):
         roles=data["roles"],
         leaderboard=levels_data["leaderboard"],
         level_config=levels_data["level_config"],
+        rewards=levels_data["rewards"],
         message=request.args.get("message"),
     )
 
@@ -554,6 +561,54 @@ def set_levels_excluded_roles(guild_id):
             timeout=5,
         )
         message = "Ausgeschlossene Rollen gespeichert." if response.ok else response.json().get("error", "Fehler beim Speichern.")
+    except requests.RequestException:
+        message = "Der Bot ist über die interne API aktuell nicht erreichbar."
+
+    return redirect(url_for("levels_page", guild_id=guild_id, message=message))
+
+
+@app.route("/server/<guild_id>/levels/rewards", methods=["POST"])
+@login_required
+def set_level_reward(guild_id):
+    discord_session = make_discord_session(token=session["oauth_token"])
+    if get_admin_guild_or_none(discord_session, guild_id) is None:
+        return render_template("levels.html", error="access"), 403
+
+    level = request.form.get("level", "").strip()
+    role_id = request.form.get("role_id", "").strip()
+    if not level.isdigit() or not role_id.isdigit():
+        return redirect(
+            url_for("levels_page", guild_id=guild_id, message="Bitte ein gültiges Level und eine Rolle auswählen.")
+        )
+
+    try:
+        response = requests.post(
+            f"{BOT_API_URL}/api/guilds/{guild_id}/levels/rewards",
+            json={"level": level, "role_id": role_id},
+            headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
+            timeout=5,
+        )
+        message = "Level-Belohnung gespeichert." if response.ok else response.json().get("error", "Fehler beim Speichern.")
+    except requests.RequestException:
+        message = "Der Bot ist über die interne API aktuell nicht erreichbar."
+
+    return redirect(url_for("levels_page", guild_id=guild_id, message=message))
+
+
+@app.route("/server/<guild_id>/levels/rewards/<level>/delete", methods=["POST"])
+@login_required
+def delete_level_reward(guild_id, level):
+    discord_session = make_discord_session(token=session["oauth_token"])
+    if get_admin_guild_or_none(discord_session, guild_id) is None:
+        return render_template("levels.html", error="access"), 403
+
+    try:
+        response = requests.post(
+            f"{BOT_API_URL}/api/guilds/{guild_id}/levels/rewards/{level}/delete",
+            headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
+            timeout=5,
+        )
+        message = "Level-Belohnung gelöscht." if response.ok else response.json().get("error", "Fehler beim Löschen.")
     except requests.RequestException:
         message = "Der Bot ist über die interne API aktuell nicht erreichbar."
 
