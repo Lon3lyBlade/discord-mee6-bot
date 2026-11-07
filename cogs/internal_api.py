@@ -92,6 +92,11 @@ class InternalAPI(commands.Cog):
         app.router.add_post(
             "/api/guilds/{guild_id}/levels/excluded-roles", self._handle_set_levels_excluded_roles
         )
+        app.router.add_get("/api/guilds/{guild_id}/levels/rewards", self._handle_get_level_rewards)
+        app.router.add_post("/api/guilds/{guild_id}/levels/rewards", self._handle_set_level_reward)
+        app.router.add_post(
+            "/api/guilds/{guild_id}/levels/rewards/{level}/delete", self._handle_delete_level_reward
+        )
 
         self.runner = web.AppRunner(app)
         await self.runner.setup()
@@ -578,6 +583,66 @@ class InternalAPI(commands.Cog):
                 return web.json_response({"error": "Rolle gehört nicht zu diesem Server"}, status=404)
 
         await db.set_level_excluded_roles(guild.id, role_ids)
+        return web.json_response({"status": "ok"})
+
+    async def _handle_get_level_rewards(self, request: web.Request) -> web.Response:
+        guild = self._get_guild(request)
+        if guild is None:
+            return web.json_response({"error": "Bot ist auf diesem Server nicht vorhanden"}, status=404)
+
+        rewards = await db.get_level_rewards(guild.id)
+        result = []
+        for reward in rewards:
+            role = guild.get_role(reward["role_id"])
+            result.append(
+                {
+                    "level": reward["level"],
+                    "role_id": str(reward["role_id"]),
+                    "role_name": role.name if role else None,
+                }
+            )
+        return web.json_response({"rewards": result})
+
+    async def _handle_set_level_reward(self, request: web.Request) -> web.Response:
+        guild = self._get_guild(request)
+        if guild is None:
+            return web.json_response({"error": "Bot ist auf diesem Server nicht vorhanden"}, status=404)
+
+        try:
+            payload = await request.json()
+            level = int(payload["level"])
+            role_id = int(payload["role_id"])
+        except (ValueError, KeyError, TypeError):
+            return web.json_response({"error": "level oder role_id fehlt oder ist ungültig"}, status=400)
+
+        if level <= 0:
+            return web.json_response({"error": "Level muss größer als 0 sein"}, status=400)
+
+        role = guild.get_role(role_id)
+        if role is None:
+            return web.json_response({"error": "Rolle gehört nicht zu diesem Server"}, status=404)
+        if not self._is_assignable_role(guild, role):
+            return web.json_response(
+                {"error": "Diese Rolle liegt über oder auf meiner höchsten Rolle und kann nicht vergeben werden"},
+                status=400,
+            )
+
+        await db.set_level_reward(guild.id, level, role_id)
+        return web.json_response({"status": "ok"})
+
+    async def _handle_delete_level_reward(self, request: web.Request) -> web.Response:
+        guild = self._get_guild(request)
+        if guild is None:
+            return web.json_response({"error": "Bot ist auf diesem Server nicht vorhanden"}, status=404)
+
+        try:
+            level = int(request.match_info["level"])
+        except ValueError:
+            return web.json_response({"error": "Ungültiges Level"}, status=400)
+
+        deleted = await db.delete_level_reward(guild.id, level)
+        if not deleted:
+            return web.json_response({"error": "Für dieses Level ist keine Belohnung konfiguriert"}, status=404)
         return web.json_response({"status": "ok"})
 
     @staticmethod

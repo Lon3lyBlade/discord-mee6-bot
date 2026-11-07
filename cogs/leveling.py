@@ -77,6 +77,33 @@ class Leveling(commands.Cog):
 
         if result["level"] > result["old_level"]:
             await self._announce_levelup(message, result["level"])
+            await self._apply_level_rewards(message.author, result["level"])
+
+    async def _apply_level_rewards(self, member: discord.Member, new_level: int) -> None:
+        """Vergibt die Level-Belohnungsrolle für die höchste erreichte Stufe und entfernt
+        alle anderen konfigurierten Level-Rollen (nur die aktuell höchste bleibt aktiv,
+        MEE6-Stil statt kumulativem Sammeln aller Stufen)."""
+        rewards = await db.get_level_rewards(member.guild.id)
+        if not rewards:
+            return
+
+        eligible = [reward for reward in rewards if reward["level"] <= new_level]
+        target_role_id = eligible[-1]["role_id"] if eligible else None
+        all_reward_role_ids = {reward["role_id"] for reward in rewards}
+
+        target_role = member.guild.get_role(target_role_id) if target_role_id else None
+        roles_to_remove = [
+            role for role in member.roles if role.id in all_reward_role_ids and role.id != target_role_id
+        ]
+        roles_to_add = [target_role] if target_role is not None and target_role not in member.roles else []
+
+        try:
+            if roles_to_remove:
+                await member.remove_roles(*roles_to_remove, reason="Level-Belohnung aktualisiert")
+            if roles_to_add:
+                await member.add_roles(*roles_to_add, reason=f"Level {new_level} erreicht")
+        except discord.Forbidden:
+            pass
 
     async def _announce_levelup(self, message: discord.Message, level: int) -> None:
         mode = await db.get_levelup_notify_mode(message.guild.id)

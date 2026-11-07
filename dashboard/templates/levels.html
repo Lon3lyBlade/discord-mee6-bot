@@ -109,6 +109,81 @@
         </form>
     </div>
 
+    <div class="relative rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 overflow-hidden mb-10">
+        <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
+        <div class="relative">
+            <h2 class="font-semibold mb-1">Level-Belohnungen (Rollen)</h2>
+            <p class="text-sm text-slate-400 mb-4">
+                Ab dem erreichten Level wird automatisch die zugewiesene Rolle vergeben. Es bleibt immer nur die
+                aktuell höchste erreichte Stufe aktiv — niedrigere Level-Rollen werden beim Aufstieg automatisch
+                wieder entfernt.
+            </p>
+
+            <form method="post" action="{{ url_for('set_level_reward', guild_id=guild.id) }}"
+                  class="flex flex-wrap items-end gap-3 mb-5">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1" for="reward_level">Level</label>
+                    <input type="number" id="reward_level" name="level" min="1" required placeholder="z. B. 20"
+                           class="w-28 bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500">
+                </div>
+                <div class="min-w-0">
+                    <label class="block text-xs font-medium text-slate-400 mb-1" for="reward_role_id">Rolle</label>
+                    <div class="relative">
+                        <select id="reward_role_id" name="role_id" required
+                                class="w-56 appearance-none bg-[#0f172a] border border-slate-700 rounded-lg px-3 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500">
+                            <option value="" disabled selected>— Rolle wählen —</option>
+                            {% for role in roles %}
+                                <option value="{{ role.id }}">{{ role.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                </div>
+                <button type="submit"
+                        class="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 transition-all text-white font-semibold py-2.5 px-5 rounded-lg">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Hinzufügen
+                </button>
+            </form>
+
+            {% if rewards %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-left text-slate-500 border-b border-white/10">
+                                <th class="py-2 pr-4 font-medium">Level</th>
+                                <th class="py-2 pr-4 font-medium">Rolle</th>
+                                <th class="py-2 pr-4 font-medium"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reward in rewards %}
+                                <tr class="border-b border-white/10/60">
+                                    <td class="py-2.5 pr-4 text-slate-300">{{ reward.level }}</td>
+                                    <td class="py-2.5 pr-4">{{ reward.role_name or "Unbekannte Rolle (gelöscht?)" }}</td>
+                                    <td class="py-2.5 pr-0 text-right">
+                                        <form method="post" action="{{ url_for('delete_level_reward', guild_id=guild.id, level=reward.level) }}">
+                                            <button type="submit"
+                                                    class="text-red-400 hover:text-red-300 text-xs font-medium transition-colors">
+                                                Löschen
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-sm text-slate-500">Es sind noch keine Level-Belohnungen konfiguriert.</p>
+            {% endif %}
+        </div>
+    </div>
+
     <div class="relative rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 overflow-hidden">
         <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
         <div class="relative">

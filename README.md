@@ -32,6 +32,9 @@ Dashboard laufen **in einem einzigen Docker-Container** als zwei Prozesse.
   Level-Up-Embeds im Chat oder per DM, `/rank [user]` (Level, XP, Fortschrittsbalken) und
   `/leaderboard` (Top 10 der Guild). Lässt sich im Dashboard pro Server an-/abschalten,
   für einzelne Channels/Rollen ausschließen und die Level-Up-Benachrichtigung umstellen.
+  Zusätzlich konfigurierbare Level-Rollen-Belohnungen (z. B. Level 20 → Rolle
+  "Oberhaupt"): Bei Level-Aufstieg wird automatisch die Rolle der höchsten erreichten
+  Stufe vergeben, niedrigere Stufen-Rollen werden entfernt.
 - **Web-Dashboard** — Discord-OAuth2-Login, Übersicht aller Server mit Adminrechten, pro
   Server eigene Seiten für Einstellungen (Willkommens-Channel, AutoRole), TempVoice-Kanäle,
   Events/Kalender, Level-System (Leaderboard + Einstellungen) und einen Embed-Generator
