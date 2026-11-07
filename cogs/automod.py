@@ -68,6 +68,11 @@ class AutoMod(commands.Cog):
             except (discord.Forbidden, discord.NotFound):
                 pass
 
+        reason = (
+            f"Anti-Spam: {len(recent)} Nachrichten innerhalb von {SPAM_INTERVAL_SECONDS} Sekunden gesendet."
+        )
+        await db.add_warning(message.guild.id, message.author.id, self.bot.user.id, reason)
+
         try:
             await message.author.send(
                 f"⚠️ Du wurdest auf **{message.guild.name}** verwarnt, weil du innerhalb von "
