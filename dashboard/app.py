@@ -437,6 +437,129 @@ def delete_event(guild_id, event_id):
     return redirect(url_for("events_page", guild_id=guild_id, message=message))
 
 
+def fetch_levels_data(guild_id: str):
+    """Holt Leaderboard + Level-Konfiguration von der internen Bot-API.
+
+    Gibt (error, data) zurück: error ist None bei Erfolg, sonst "unreachable".
+    """
+    try:
+        users_response = requests.get(
+            f"{BOT_API_URL}/api/guilds/{guild_id}/levels",
+            headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
+            timeout=5,
+        )
+        leaderboard = users_response.json()["users"]
+        config_response = requests.get(
+            f"{BOT_API_URL}/api/guilds/{guild_id}/levels/config",
+            headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
+            timeout=5,
+        )
+        level_config = config_response.json()
+    except requests.RequestException:
+        return "unreachable", None
+
+    return None, {"leaderboard": leaderboard, "level_config": level_config}
+
+
+@app.route("/server/<guild_id>/levels")
+@login_required
+def levels_page(guild_id):
+    result = resolve_guild_or_response(guild_id, "levels.html")
+    if not isinstance(result, tuple) or len(result) != 4:
+        return result
+    _discord_session, user, admin_guilds, guild = result
+
+    error, data = fetch_guild_bot_data(guild_id)
+    if error:
+        return render_template("levels.html", error=error, guild=guild, user=user, guilds=admin_guilds)
+
+    levels_error, levels_data = fetch_levels_data(guild_id)
+    if levels_error:
+        return render_template("levels.html", error=levels_error, guild=guild, user=user, guilds=admin_guilds)
+
+    return render_template(
+        "levels.html",
+        active="levels",
+        guild=guild,
+        user=user,
+        guilds=admin_guilds,
+        channels=data["channels"],
+        roles=data["roles"],
+        leaderboard=levels_data["leaderboard"],
+        level_config=levels_data["level_config"],
+        message=request.args.get("message"),
+    )
+
+
+@app.route("/server/<guild_id>/levels/settings", methods=["POST"])
+@login_required
+def set_levels_settings(guild_id):
+    discord_session = make_discord_session(token=session["oauth_token"])
+    if get_admin_guild_or_none(discord_session, guild_id) is None:
+        return render_template("levels.html", error="access"), 403
+
+    payload = {
+        "xp_enabled": request.form.get("xp_enabled") == "on",
+        "notify_mode": request.form.get("notify_mode", "chat"),
+    }
+    try:
+        response = requests.post(
+            f"{BOT_API_URL}/api/guilds/{guild_id}/levels/config",
+            json=payload,
+            headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
+            timeout=5,
+        )
+        message = "Level-Einstellungen gespeichert." if response.ok else response.json().get("error", "Fehler beim Speichern.")
+    except requests.RequestException:
+        message = "Der Bot ist über die interne API aktuell nicht erreichbar."
+
+    return redirect(url_for("levels_page", guild_id=guild_id, message=message))
+
+
+@app.route("/server/<guild_id>/levels/excluded-channels", methods=["POST"])
+@login_required
+def set_levels_excluded_channels(guild_id):
+    discord_session = make_discord_session(token=session["oauth_token"])
+    if get_admin_guild_or_none(discord_session, guild_id) is None:
+        return render_template("levels.html", error="access"), 403
+
+    channel_ids = [cid for cid in request.form.getlist("channel_ids") if cid.isdigit()]
+    try:
+        response = requests.post(
+            f"{BOT_API_URL}/api/guilds/{guild_id}/levels/excluded-channels",
+            json={"channel_ids": channel_ids},
+            headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
+            timeout=5,
+        )
+        message = "Ausgeschlossene Channels gespeichert." if response.ok else response.json().get("error", "Fehler beim Speichern.")
+    except requests.RequestException:
+        message = "Der Bot ist über die interne API aktuell nicht erreichbar."
+
+    return redirect(url_for("levels_page", guild_id=guild_id, message=message))
+
+
+@app.route("/server/<guild_id>/levels/excluded-roles", methods=["POST"])
+@login_required
+def set_levels_excluded_roles(guild_id):
+    discord_session = make_discord_session(token=session["oauth_token"])
+    if get_admin_guild_or_none(discord_session, guild_id) is None:
+        return render_template("levels.html", error="access"), 403
+
+    role_ids = [rid for rid in request.form.getlist("role_ids") if rid.isdigit()]
+    try:
+        response = requests.post(
+            f"{BOT_API_URL}/api/guilds/{guild_id}/levels/excluded-roles",
+            json={"role_ids": role_ids},
+            headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
+            timeout=5,
+        )
+        message = "Ausgeschlossene Rollen gespeichert." if response.ok else response.json().get("error", "Fehler beim Speichern.")
+    except requests.RequestException:
+        message = "Der Bot ist über die interne API aktuell nicht erreichbar."
+
+    return redirect(url_for("levels_page", guild_id=guild_id, message=message))
+
+
 @app.route("/server/<guild_id>/mod-log-channel", methods=["POST"])
 @login_required
 def set_mod_log_channel(guild_id):

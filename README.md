@@ -28,10 +28,14 @@ Dashboard laufen **in einem einzigen Docker-Container** als zwei Prozesse.
   (`/play`, `/skip`, `/queue`, `/stop`/`/leave`) von YouTube/YouTube Music, Spotify, Apple
   Music und SoundCloud. Benötigt einen separat laufenden Lavalink-Server, siehe
   [Musik-System (Lavalink)](#musik-system-lavalink) unten.
+- **Level-System** — 15–25 zufällige XP pro Nachricht (60-Sekunden-Cooldown pro Nutzer),
+  Level-Up-Embeds im Chat oder per DM, `/rank [user]` (Level, XP, Fortschrittsbalken) und
+  `/leaderboard` (Top 10 der Guild). Lässt sich im Dashboard pro Server an-/abschalten,
+  für einzelne Channels/Rollen ausschließen und die Level-Up-Benachrichtigung umstellen.
 - **Web-Dashboard** — Discord-OAuth2-Login, Übersicht aller Server mit Adminrechten, pro
   Server eigene Seiten für Einstellungen (Willkommens-Channel, AutoRole), TempVoice-Kanäle,
-  Events/Kalender und einen Embed-Generator (Author/Footer/Thumbnail/Bild-Upload, dynamische
-  Felder, Discord-Live-Vorschau).
+  Events/Kalender, Level-System (Leaderboard + Einstellungen) und einen Embed-Generator
+  (Author/Footer/Thumbnail/Bild-Upload, dynamische Felder, Discord-Live-Vorschau).
 
 ## Architektur
 
@@ -46,6 +50,7 @@ Discord-host/
 │   ├── tempvoice.py                # Temporäre Sprachkanäle
 │   ├── events.py                  # Event-/Kalendersystem mit RSVP-Buttons
 │   ├── music.py                   # Musik-Slash-Commands (Wavelink + Lavalink)
+│   ├── leveling.py                 # XP-/Level-System (/rank, /leaderboard)
 │   └── internal_api.py            # Interne aiohttp-API für Bot<->Dashboard-Kommunikation
 ├── database/
 │   └── db.py                      # Gemeinsame SQLite-DB (aiosqlite)
@@ -60,6 +65,7 @@ Discord-host/
 │       ├── moderation.html         # Mod-Log-Channel + Verwarnungs-Übersicht
 │       ├── tempvoice.html         # TempVoice-Kanalauswahl
 │       ├── events.html            # Event-/Kalender-Übersicht + Erstellen/Bearbeiten
+│       ├── levels.html            # Leaderboard + Level-System-Einstellungen
 │       └── embed_builder.html     # Embed-Generator
 ├── lavalink/
 │   ├── application.yml.example    # Vorlage für die Lavalink-Konfiguration (Musik-System)

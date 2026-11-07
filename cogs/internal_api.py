@@ -83,6 +83,15 @@ class InternalAPI(commands.Cog):
         app.router.add_post("/api/guilds/{guild_id}/events", self._handle_create_event)
         app.router.add_post("/api/guilds/{guild_id}/events/{event_id}/edit", self._handle_edit_event)
         app.router.add_post("/api/guilds/{guild_id}/events/{event_id}/delete", self._handle_delete_event)
+        app.router.add_get("/api/guilds/{guild_id}/levels", self._handle_get_levels)
+        app.router.add_get("/api/guilds/{guild_id}/levels/config", self._handle_get_levels_config)
+        app.router.add_post("/api/guilds/{guild_id}/levels/config", self._handle_set_levels_config)
+        app.router.add_post(
+            "/api/guilds/{guild_id}/levels/excluded-channels", self._handle_set_levels_excluded_channels
+        )
+        app.router.add_post(
+            "/api/guilds/{guild_id}/levels/excluded-roles", self._handle_set_levels_excluded_roles
+        )
 
         self.runner = web.AppRunner(app)
         await self.runner.setup()
@@ -477,6 +486,98 @@ class InternalAPI(commands.Cog):
 
         await delete_event_message(self.bot, event_id)
         await db.delete_event(event_id)
+        return web.json_response({"status": "ok"})
+
+    async def _handle_get_levels(self, request: web.Request) -> web.Response:
+        guild = self._get_guild(request)
+        if guild is None:
+            return web.json_response({"error": "Bot ist auf diesem Server nicht vorhanden"}, status=404)
+
+        entries = await db.get_leaderboard(guild.id, limit=None)
+        users = [
+            {
+                "user_id": str(entry["user_id"]),
+                "display": self._resolve_display_name(guild, entry["user_id"]),
+                "xp": entry["xp"],
+                "level": entry["level"],
+            }
+            for entry in entries
+        ]
+        return web.json_response({"users": users})
+
+    async def _handle_get_levels_config(self, request: web.Request) -> web.Response:
+        guild = self._get_guild(request)
+        if guild is None:
+            return web.json_response({"error": "Bot ist auf diesem Server nicht vorhanden"}, status=404)
+
+        xp_enabled = await db.get_xp_enabled(guild.id)
+        notify_mode = await db.get_levelup_notify_mode(guild.id)
+        excluded_channel_ids = await db.get_level_excluded_channels(guild.id)
+        excluded_role_ids = await db.get_level_excluded_roles(guild.id)
+        return web.json_response(
+            {
+                "xp_enabled": xp_enabled,
+                "notify_mode": notify_mode,
+                "excluded_channel_ids": [str(channel_id) for channel_id in excluded_channel_ids],
+                "excluded_role_ids": [str(role_id) for role_id in excluded_role_ids],
+            }
+        )
+
+    async def _handle_set_levels_config(self, request: web.Request) -> web.Response:
+        guild = self._get_guild(request)
+        if guild is None:
+            return web.json_response({"error": "Bot ist auf diesem Server nicht vorhanden"}, status=404)
+
+        try:
+            payload = await request.json()
+            notify_mode = payload["notify_mode"]
+        except (json.JSONDecodeError, KeyError, TypeError):
+            return web.json_response({"error": "notify_mode fehlt oder ist ungültig"}, status=400)
+
+        if notify_mode not in ("chat", "dm", "disabled"):
+            return web.json_response({"error": "notify_mode muss chat, dm oder disabled sein"}, status=400)
+
+        await db.set_xp_enabled(guild.id, bool(payload.get("xp_enabled")))
+        await db.set_levelup_notify_mode(guild.id, notify_mode)
+        return web.json_response({"status": "ok"})
+
+    async def _handle_set_levels_excluded_channels(self, request: web.Request) -> web.Response:
+        guild = self._get_guild(request)
+        if guild is None:
+            return web.json_response({"error": "Bot ist auf diesem Server nicht vorhanden"}, status=404)
+
+        try:
+            payload = await request.json()
+            channel_ids = [int(channel_id) for channel_id in payload["channel_ids"]]
+        except (ValueError, KeyError, TypeError):
+            return web.json_response({"error": "channel_ids fehlt oder ist ungültig"}, status=400)
+
+        for channel_id in channel_ids:
+            channel = guild.get_channel(channel_id)
+            if not isinstance(channel, discord.TextChannel):
+                return web.json_response(
+                    {"error": "Channel gehört nicht zu diesem Server oder ist kein Textchannel"}, status=404
+                )
+
+        await db.set_level_excluded_channels(guild.id, channel_ids)
+        return web.json_response({"status": "ok"})
+
+    async def _handle_set_levels_excluded_roles(self, request: web.Request) -> web.Response:
+        guild = self._get_guild(request)
+        if guild is None:
+            return web.json_response({"error": "Bot ist auf diesem Server nicht vorhanden"}, status=404)
+
+        try:
+            payload = await request.json()
+            role_ids = [int(role_id) for role_id in payload["role_ids"]]
+        except (ValueError, KeyError, TypeError):
+            return web.json_response({"error": "role_ids fehlt oder ist ungültig"}, status=400)
+
+        for role_id in role_ids:
+            if guild.get_role(role_id) is None:
+                return web.json_response({"error": "Rolle gehört nicht zu diesem Server"}, status=404)
+
+        await db.set_level_excluded_roles(guild.id, role_ids)
         return web.json_response({"status": "ok"})
 
     @staticmethod
