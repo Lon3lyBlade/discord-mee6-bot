@@ -20,7 +20,10 @@
 # Voraussetzung: SSH auf Unraid aktiv, lokale .env ausgefüllt (Kopie von .env.example).
 set -euo pipefail
 
-UNRAID_HOST="${UNRAID_HOST:-192.168.178.41}"
+# "tower.local" ist Unraids eigener mDNS-Standardname; per UNRAID_HOST überschreibbar,
+# falls der Server anders heißt oder mDNS im eigenen LAN nicht funktioniert (dann die
+# tatsächliche LAN-IP setzen, z.B. UNRAID_HOST=192.168.x.x bash deploy.sh).
+UNRAID_HOST="${UNRAID_HOST:-tower.local}"
 UNRAID_USER="${UNRAID_USER:-root}"
 REMOTE_DIR="${REMOTE_DIR:-/mnt/user/appdata/discord-bot-dashboard}"
 CONTAINER="${CONTAINER:-discord-bot-dashboard}"
