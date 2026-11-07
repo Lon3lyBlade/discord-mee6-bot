@@ -162,8 +162,14 @@ def fetch_guild_bot_data(guild_id: str):
             headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
             timeout=5,
         ).json()["channels"]
+        # /roles/all statt /roles: zeigt wirklich jede Rolle (nur @everyone raus), nicht nur
+        # die, die der Bot aktuell selbst vergeben könnte. AutoRole validiert das zugewiesene
+        # Level beim Speichern ohnehin separat und gibt dort eine klare Fehlermeldung aus,
+        # und der Event-Ziel-Rolle-Picker (events.html) braucht die Einschränkung gar nicht
+        # erst, da channel.set_permissions() anders als add_roles() keine Rollenhierarchie
+        # voraussetzt.
         roles = requests.get(
-            f"{BOT_API_URL}/api/guilds/{guild_id}/roles",
+            f"{BOT_API_URL}/api/guilds/{guild_id}/roles/all",
             headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
             timeout=5,
         ).json()["roles"]
