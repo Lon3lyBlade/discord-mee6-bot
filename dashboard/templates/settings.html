@@ -4,7 +4,7 @@
 {% block page_content %}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
         <form method="post" action="{{ url_for('set_welcome_channel', guild_id=guild.id) }}"
-              class="relative rounded-2xl border border-slate-800 bg-[#1e293b] p-6 space-y-4 overflow-hidden">
+              class="relative rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 space-y-4 overflow-hidden">
             <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
             <div class="relative space-y-4">
                 <div class="flex items-center gap-3 min-w-0">
@@ -47,7 +47,7 @@
         </form>
 
         <form method="post" action="{{ url_for('set_autorole', guild_id=guild.id) }}"
-              class="relative rounded-2xl border border-slate-800 bg-[#1e293b] p-6 space-y-4 overflow-hidden">
+              class="relative rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 space-y-4 overflow-hidden">
             <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
             <div class="relative space-y-4">
                 <div class="flex items-center gap-3 min-w-0">
@@ -91,7 +91,7 @@
             </div>
         </form>
 
-        <div class="relative rounded-2xl border border-slate-800 bg-[#1e293b] p-6 overflow-hidden">
+        <div class="relative rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 overflow-hidden">
             <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
             <div class="relative">
                 <div class="flex items-center gap-3 mb-1">

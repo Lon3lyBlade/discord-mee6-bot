@@ -6,14 +6,15 @@
     <title>Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-[#0f172a] text-slate-100 min-h-screen">
+<body class="bg-[#0b0f1a] text-slate-100 min-h-screen">
+    <div class="fixed inset-0 pointer-events-none bg-[radial-gradient(ellipse_900px_500px_at_50%_-10%,rgba(139,92,246,0.12),transparent)]"></div>
 
-    <div class="flex min-h-screen">
+    <div class="relative flex min-h-screen">
         {% set active = 'dashboard' %}
         {% include "_sidebar.html" %}
 
         <div class="flex-1 flex flex-col min-w-0">
-            <header class="h-16 border-b border-slate-800 bg-[#0f172a]/80 backdrop-blur px-4 md:px-6 flex items-center justify-between gap-4">
+            <header class="h-16 border-b border-white/10 bg-white/[0.03] backdrop-blur-xl px-4 md:px-6 flex items-center justify-between gap-4">
                 <div class="flex items-center gap-3 min-w-0 flex-1">
                     <div class="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center font-bold text-sm shrink-0 md:hidden">B</div>
 
@@ -22,14 +23,21 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
                         </svg>
                         <input id="guild-search" type="text" placeholder="Server durchsuchen..."
-                               class="w-full bg-slate-800/60 border border-slate-800 rounded-full pl-9 pr-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50">
+                               class="w-full bg-white/5 border border-white/10 rounded-full pl-9 pr-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50">
                     </div>
                 </div>
-                <div class="flex items-center gap-4 shrink-0">
+                <div class="flex items-center gap-3 shrink-0">
+                    <button type="button" onclick="location.reload()" title="Aktualisieren"
+                            class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-100 bg-white/5 hover:bg-white/10 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                    </button>
+                    <div class="w-px h-6 bg-white/10"></div>
                     <div class="flex items-center gap-2.5">
                         {% if user.avatar %}
                             <img src="https://cdn.discordapp.com/avatars/{{ user.id }}/{{ user.avatar }}.png"
-                                 alt="{{ user.username }}" class="w-8 h-8 rounded-full ring-2 ring-slate-800">
+                                 alt="{{ user.username }}" class="w-8 h-8 rounded-full ring-2 ring-white/10">
                         {% else %}
                             <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs">
                                 {{ user.username[0] | upper }}
@@ -42,7 +50,7 @@
                 </div>
             </header>
 
-            <main class="flex-1 px-4 md:px-8 py-10 max-w-6xl w-full mx-auto">
+            <main class="relative flex-1 px-4 md:px-8 py-10 max-w-6xl w-full mx-auto">
                 <h2 class="text-2xl font-bold mb-1">Admin Dashboard</h2>
                 <p class="text-slate-400 mb-8">Server, auf denen du Administratorrechte besitzt.</p>
 
@@ -109,25 +117,25 @@
                     <div id="guild-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                         {% for guild in guilds %}
                             <div data-guild-name="{{ guild.name | lower }}"
-                                 class="group relative rounded-2xl border border-slate-800 bg-[#1e293b] overflow-hidden shadow-lg hover:shadow-violet-500/10 hover:-translate-y-0.5 transition-all">
-                                <div class="h-16 bg-gradient-to-br from-violet-600/40 via-violet-600/30 to-[#1e293b] relative">
-                                    <div class="absolute inset-0 bg-gradient-to-br from-white/[0.06] to-transparent pointer-events-none"></div>
-                                    <span class="absolute top-3 right-3 text-[10px] uppercase tracking-wide font-semibold px-2 py-0.5 rounded-full {{ 'bg-amber-500/20 text-amber-300' if guild.owner else 'bg-violet-500/20 text-violet-300' }}">
+                                 class="group relative rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl overflow-hidden shadow-lg hover:shadow-violet-500/10 hover:-translate-y-0.5 transition-all">
+                                <div class="h-20 bg-gradient-to-br from-violet-600/50 via-fuchsia-600/30 to-transparent relative">
+                                    <div class="absolute inset-0 bg-gradient-to-br from-white/[0.08] to-transparent pointer-events-none"></div>
+                                    <span class="absolute top-3 left-3 text-[10px] uppercase tracking-wide font-semibold px-2 py-0.5 rounded-full backdrop-blur-xl {{ 'bg-amber-500/25 text-amber-300' if guild.owner else 'bg-violet-500/25 text-violet-300' }}">
                                         {{ 'Owner' if guild.owner else 'Admin' }}
                                     </span>
                                 </div>
                                 <div class="px-5 pb-5 -mt-8">
                                     {% if guild.icon %}
                                         <img src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png"
-                                             alt="{{ guild.name }}" class="w-16 h-16 rounded-full ring-4 ring-[#1e293b] mb-3">
+                                             alt="{{ guild.name }}" class="w-16 h-16 rounded-full ring-4 ring-[#10172b] mb-3">
                                     {% else %}
-                                        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center text-xl font-bold ring-4 ring-[#1e293b] mb-3">
+                                        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center text-xl font-bold ring-4 ring-[#10172b] mb-3">
                                             {{ guild.name[0] | upper }}
                                         </div>
                                     {% endif %}
                                     <h3 class="font-semibold truncate mb-4">{{ guild.name }}</h3>
                                     <a href="{{ url_for('server_detail', guild_id=guild.id) }}"
-                                       class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 transition-all text-white text-sm font-semibold py-2 rounded-lg">
+                                       class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 transition-all text-white text-sm font-semibold py-2 rounded-full">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -138,11 +146,11 @@
                             </div>
                         {% endfor %}
                     </div>
-                    <p id="guild-empty" class="hidden rounded-xl border border-slate-800 bg-[#1e293b] p-10 text-center text-slate-400 mt-5">
+                    <p id="guild-empty" class="hidden rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-10 text-center text-slate-400 mt-5">
                         Kein Server gefunden.
                     </p>
                 {% else %}
-                    <div class="rounded-xl border border-slate-800 bg-[#1e293b] p-10 text-center text-slate-400">
+                    <div class="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-10 text-center text-slate-400">
                         Du hast auf keinem Server Administratorrechte.
                     </div>
                 {% endif %}

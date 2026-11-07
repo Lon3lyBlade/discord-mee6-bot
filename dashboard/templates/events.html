@@ -4,7 +4,7 @@
 {% block page_content %}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
         <form method="post" action="{{ url_for('create_event', guild_id=guild.id) }}"
-              class="relative rounded-xl border border-slate-800 bg-[#1e293b] p-6 space-y-4 overflow-hidden lg:col-span-1">
+              class="relative rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 space-y-4 overflow-hidden lg:col-span-1">
             <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
             <div class="relative space-y-4">
                 <h2 class="font-semibold">Neues Event</h2>
@@ -77,7 +77,7 @@
             </div>
         </form>
 
-        <div class="relative rounded-xl border border-slate-800 bg-[#1e293b] p-6 overflow-hidden lg:col-span-2">
+        <div class="relative rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 overflow-hidden lg:col-span-2">
             <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
             <div class="relative">
                 <h2 class="font-semibold mb-1">Kommende Events</h2>
@@ -89,7 +89,7 @@
                 {% if events %}
                     <div class="space-y-3">
                         {% for event in events %}
-                            <details class="group rounded-lg border border-slate-800 bg-[#0f172a] overflow-hidden {% if event.status == 'cancelled' %}opacity-60{% endif %}">
+                            <details class="group rounded-lg border border-white/10 bg-white/[0.02] overflow-hidden {% if event.status == 'cancelled' %}opacity-60{% endif %}">
                                 <summary class="list-none [&::-webkit-details-marker]:hidden cursor-pointer px-4 py-3 flex items-center justify-between gap-3">
                                     <div class="min-w-0">
                                         <p class="font-medium truncate">
@@ -113,7 +113,7 @@
                                     </div>
                                 </summary>
 
-                                <div class="border-t border-slate-800 px-4 py-4 space-y-4">
+                                <div class="border-t border-white/10 px-4 py-4 space-y-4">
                                     {% if event.description %}
                                         <p class="text-sm text-slate-300">{{ event.description }}</p>
                                     {% endif %}
@@ -136,26 +136,26 @@
                                     </div>
 
                                     <form method="post" action="{{ url_for('edit_event', guild_id=guild.id, event_id=event.id) }}"
-                                          class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-slate-800">
+                                          class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-white/10">
                                         <div class="sm:col-span-2">
                                             <label class="block text-xs font-medium text-slate-400 mb-1">Titel</label>
                                             <input type="text" name="title" value="{{ event.title }}" required maxlength="256"
-                                                   class="w-full bg-[#1e293b] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
+                                                   class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
                                         </div>
                                         <div class="sm:col-span-2">
                                             <label class="block text-xs font-medium text-slate-400 mb-1">Beschreibung</label>
                                             <textarea name="description" rows="2" maxlength="1000"
-                                                      class="w-full bg-[#1e293b] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">{{ event.description or "" }}</textarea>
+                                                      class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">{{ event.description or "" }}</textarea>
                                         </div>
                                         <div>
                                             <label class="block text-xs font-medium text-slate-400 mb-1">Datum &amp; Uhrzeit</label>
                                             <input type="datetime-local" name="event_time" value="{{ event.event_time_input }}" required
-                                                   class="w-full bg-[#1e293b] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
+                                                   class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
                                         </div>
                                         <div>
                                             <label class="block text-xs font-medium text-slate-400 mb-1">Channel</label>
                                             <select name="channel_id" required
-                                                    class="w-full bg-[#1e293b] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
+                                                    class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
                                                 {% for channel in channels %}
                                                     <option value="{{ channel.id }}" {% if channel.id == event.channel_id %}selected{% endif %}>#{{ channel.name }}</option>
                                                 {% endfor %}
@@ -164,7 +164,7 @@
                                         <div class="sm:col-span-2">
                                             <label class="block text-xs font-medium text-slate-400 mb-1">Ziel-Rolle</label>
                                             <select name="target_role_id"
-                                                    class="w-full bg-[#1e293b] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
+                                                    class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
                                                 <option value="" {% if not event.target_role_id %}selected{% endif %}>— keine Einschränkung —</option>
                                                 {% for role in roles %}
                                                     <option value="{{ role.id }}" {% if role.id == event.target_role_id %}selected{% endif %}>@{{ role.name }}</option>

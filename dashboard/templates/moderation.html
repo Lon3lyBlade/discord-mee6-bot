@@ -4,7 +4,7 @@
 {% block page_content %}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
         <form method="post" action="{{ url_for('set_mod_log_channel', guild_id=guild.id) }}"
-              class="relative rounded-xl border border-slate-800 bg-[#1e293b] p-6 space-y-4 overflow-hidden lg:col-span-1">
+              class="relative rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 space-y-4 overflow-hidden lg:col-span-1">
             <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
             <div class="relative space-y-4">
                 <h2 class="font-semibold">Mod-Log-Channel</h2>
@@ -39,7 +39,7 @@
             </div>
         </form>
 
-        <div class="relative rounded-xl border border-slate-800 bg-[#1e293b] p-6 overflow-hidden lg:col-span-2">
+        <div class="relative rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 overflow-hidden lg:col-span-2">
             <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
             <div class="relative">
                 <h2 class="font-semibold mb-1">Moderations-Befehle</h2>
@@ -63,7 +63,7 @@
         </div>
     </div>
 
-    <div class="relative rounded-xl border border-slate-800 bg-[#1e293b] p-6 overflow-hidden">
+    <div class="relative rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 overflow-hidden">
         <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
         <div class="relative">
             <h2 class="font-semibold mb-1">Verwarnungen</h2>
@@ -73,7 +73,7 @@
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead>
-                            <tr class="text-left text-slate-500 border-b border-slate-800">
+                            <tr class="text-left text-slate-500 border-b border-white/10">
                                 <th class="py-2 pr-4 font-medium">Mitglied</th>
                                 <th class="py-2 pr-4 font-medium">Grund</th>
                                 <th class="py-2 pr-4 font-medium">Moderator</th>
@@ -83,7 +83,7 @@
                         </thead>
                         <tbody>
                             {% for warning in warnings %}
-                                <tr class="border-b border-slate-800/60">
+                                <tr class="border-b border-white/10/60">
                                     <td class="py-2.5 pr-4">{{ warning.user_display }}</td>
                                     <td class="py-2.5 pr-4 text-slate-300">{{ warning.reason or "—" }}</td>
                                     <td class="py-2.5 pr-4 text-slate-400">{{ warning.moderator_display }}</td>
