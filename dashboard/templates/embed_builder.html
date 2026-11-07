@@ -3,7 +3,7 @@
 
 {% block page_content %}
     <div class="flex items-center gap-3 mb-1">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shrink-0 shadow-lg shadow-violet-900/30">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-violet-600 flex items-center justify-center shrink-0 shadow-lg shadow-violet-900/30">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" />
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2z" />
@@ -28,7 +28,7 @@
                     <div class="relative">
                         <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-semibold">#</span>
                         <select id="embed_channel_id" name="channel_id" required
-                                class="w-full appearance-none bg-[#0f172a] border border-slate-700 rounded-lg pl-8 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                class="w-full appearance-none bg-[#0f172a] border border-slate-700 rounded-lg pl-8 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
                             <option value="">— Channel auswählen —</option>
                             {% for channel in channels %}
                                 <option value="{{ channel.id }}">#{{ channel.name }}</option>
@@ -43,19 +43,19 @@
                     <label class="block text-sm font-medium text-slate-300 mb-1" for="embed_title">Titel</label>
                     <input type="text" id="embed_title" name="title" maxlength="256"
                            placeholder="Titel des Embeds"
-                           class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                           class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-300 mb-1" for="embed_url">Titel-Link (optional)</label>
                     <input type="url" id="embed_url" name="url"
                            placeholder="https://… macht den Titel klickbar"
-                           class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                           class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-300 mb-1" for="embed_description">Beschreibung</label>
                     <textarea id="embed_description" name="description" rows="5" maxlength="4096"
                               placeholder="Inhalt der Nachricht"
-                              class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                              class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"></textarea>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-300 mb-1" for="embed_color">Farbe</label>
@@ -67,7 +67,7 @@
                 </div>
                 <label class="flex items-center gap-2 text-sm text-slate-300">
                     <input type="checkbox" id="embed_timestamp" name="timestamp"
-                           class="rounded border-slate-700 bg-[#0f172a] text-indigo-500 focus:ring-indigo-500">
+                           class="rounded border-slate-700 bg-[#0f172a] text-violet-500 focus:ring-violet-500">
                     Aktuelle Zeit im Embed anzeigen
                 </label>
 
@@ -114,7 +114,7 @@
                 <div>
                     <div class="flex items-center justify-between mb-2">
                         <label class="text-sm font-medium text-slate-300">Felder</label>
-                        <button type="button" id="add-field-btn" class="text-xs text-indigo-400 hover:text-indigo-300">
+                        <button type="button" id="add-field-btn" class="text-xs text-violet-400 hover:text-violet-300">
                             + Feld hinzufügen
                         </button>
                     </div>
@@ -122,7 +122,7 @@
                 </div>
 
                 <button type="submit"
-                        class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:brightness-110 transition-all text-white font-semibold py-2.5 rounded-lg">
+                        class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-violet-600 hover:brightness-110 transition-all text-white font-semibold py-2.5 rounded-lg">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                     </svg>
@@ -143,7 +143,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
                     <select id="embed-preview-mode"
-                            class="appearance-none bg-[#0f172a] border border-slate-700 rounded-lg pl-3 pr-8 py-1.5 text-xs text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            class="appearance-none bg-[#0f172a] border border-slate-700 rounded-lg pl-3 pr-8 py-1.5 text-xs text-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-500">
                         <option value="desktop">Preview as… Desktop</option>
                         <option value="mobile">Preview as… Mobile</option>
                     </select>

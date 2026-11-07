@@ -23,7 +23,7 @@
                     <div class="relative">
                         <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-semibold">#</span>
                         <select id="channel_id" name="channel_id"
-                                class="w-full appearance-none bg-[#0f172a] border border-slate-700 rounded-lg pl-8 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                class="w-full appearance-none bg-[#0f172a] border border-slate-700 rounded-lg pl-8 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
                             <option value="">— kein Channel ausgewählt —</option>
                             {% for channel in channels %}
                                 <option value="{{ channel.id }}" {% if channel.id == config.welcome_channel_id %}selected{% endif %}>
@@ -37,7 +37,7 @@
                     </div>
                 </div>
                 <button type="submit"
-                        class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:brightness-110 transition-all text-white font-semibold py-2.5 rounded-lg">
+                        class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 transition-all text-white font-semibold py-2.5 rounded-lg">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                     </svg>
@@ -68,7 +68,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622a11.955 11.955 0 01-8.618-3.04L12 2.944z" />
                         </svg>
                         <select id="role_id" name="role_id"
-                                class="w-full appearance-none bg-[#0f172a] border border-slate-700 rounded-lg pl-8 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                class="w-full appearance-none bg-[#0f172a] border border-slate-700 rounded-lg pl-8 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
                             <option value="">— keine Rolle ausgewählt —</option>
                             {% for role in roles %}
                                 <option value="{{ role.id }}" {% if role.id == config.auto_role_id %}selected{% endif %}>
@@ -82,7 +82,7 @@
                     </div>
                 </div>
                 <button type="submit"
-                        class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:brightness-110 transition-all text-white font-semibold py-2.5 rounded-lg">
+                        class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 transition-all text-white font-semibold py-2.5 rounded-lg">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                     </svg>
@@ -106,14 +106,14 @@
                 <div class="space-y-3">
                     <div class="flex items-center justify-between text-sm">
                         <span class="flex items-center gap-2 text-slate-400">
-                            <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                            <span class="w-2 h-2 rounded-full bg-violet-500"></span>
                             Mitglieder gesamt
                         </span>
                         <span class="font-semibold">{{ stats.member_count if stats else '—' }}</span>
                     </div>
                     <div class="flex items-center justify-between text-sm">
                         <span class="flex items-center gap-2 text-slate-400">
-                            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
                             Text-Channels
                         </span>
                         <span class="font-semibold">{{ stats.text_channel_count if stats else '—' }}</span>

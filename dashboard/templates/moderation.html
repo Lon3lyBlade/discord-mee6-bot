@@ -16,7 +16,7 @@
                     <div class="relative">
                         <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-semibold">#</span>
                         <select id="channel_id" name="channel_id"
-                                class="w-full appearance-none bg-[#0f172a] border border-slate-700 rounded-lg pl-8 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                class="w-full appearance-none bg-[#0f172a] border border-slate-700 rounded-lg pl-8 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
                             <option value="">— kein Channel ausgewählt —</option>
                             {% for channel in channels %}
                                 <option value="{{ channel.id }}" {% if channel.id == config.mod_log_channel_id %}selected{% endif %}>
@@ -30,7 +30,7 @@
                     </div>
                 </div>
                 <button type="submit"
-                        class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:brightness-110 transition-all text-white font-semibold py-2.5 rounded-lg">
+                        class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 transition-all text-white font-semibold py-2.5 rounded-lg">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                     </svg>

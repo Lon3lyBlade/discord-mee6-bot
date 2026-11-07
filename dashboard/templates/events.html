@@ -15,19 +15,19 @@
                 <div>
                     <label class="block text-sm font-medium text-slate-300 mb-1" for="title">Titel</label>
                     <input type="text" id="title" name="title" required maxlength="256"
-                           class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                           class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-slate-300 mb-1" for="description">Beschreibung</label>
                     <textarea id="description" name="description" rows="3" maxlength="1000"
-                              class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                              class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"></textarea>
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-slate-300 mb-1" for="event_time">Datum &amp; Uhrzeit</label>
                     <input type="datetime-local" id="event_time" name="event_time" required
-                           class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                           class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
                     <p class="text-xs text-slate-500 mt-1">Zeitzone: Europe/Berlin.</p>
                 </div>
 
@@ -36,7 +36,7 @@
                     <div class="relative">
                         <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-semibold">#</span>
                         <select id="channel_id" name="channel_id" required
-                                class="w-full appearance-none bg-[#0f172a] border border-slate-700 rounded-lg pl-8 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                class="w-full appearance-none bg-[#0f172a] border border-slate-700 rounded-lg pl-8 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
                             <option value="" disabled selected>— Channel wählen —</option>
                             {% for channel in channels %}
                                 <option value="{{ channel.id }}">#{{ channel.name }}</option>
@@ -52,7 +52,7 @@
                     <label class="block text-sm font-medium text-slate-300 mb-1" for="target_role_id">Ziel-Rolle</label>
                     <div class="relative">
                         <select id="target_role_id" name="target_role_id"
-                                class="w-full appearance-none bg-[#0f172a] border border-slate-700 rounded-lg px-3 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                class="w-full appearance-none bg-[#0f172a] border border-slate-700 rounded-lg px-3 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
                             <option value="">— keine Einschränkung —</option>
                             {% for role in roles %}
                                 <option value="{{ role.id }}">@{{ role.name }}</option>
@@ -68,7 +68,7 @@
                 </div>
 
                 <button type="submit"
-                        class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:brightness-110 transition-all text-white font-semibold py-2.5 rounded-lg">
+                        class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 transition-all text-white font-semibold py-2.5 rounded-lg">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                     </svg>
@@ -140,22 +140,22 @@
                                         <div class="sm:col-span-2">
                                             <label class="block text-xs font-medium text-slate-400 mb-1">Titel</label>
                                             <input type="text" name="title" value="{{ event.title }}" required maxlength="256"
-                                                   class="w-full bg-[#1e293b] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                                   class="w-full bg-[#1e293b] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
                                         </div>
                                         <div class="sm:col-span-2">
                                             <label class="block text-xs font-medium text-slate-400 mb-1">Beschreibung</label>
                                             <textarea name="description" rows="2" maxlength="1000"
-                                                      class="w-full bg-[#1e293b] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">{{ event.description or "" }}</textarea>
+                                                      class="w-full bg-[#1e293b] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">{{ event.description or "" }}</textarea>
                                         </div>
                                         <div>
                                             <label class="block text-xs font-medium text-slate-400 mb-1">Datum &amp; Uhrzeit</label>
                                             <input type="datetime-local" name="event_time" value="{{ event.event_time_input }}" required
-                                                   class="w-full bg-[#1e293b] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                                   class="w-full bg-[#1e293b] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
                                         </div>
                                         <div>
                                             <label class="block text-xs font-medium text-slate-400 mb-1">Channel</label>
                                             <select name="channel_id" required
-                                                    class="w-full bg-[#1e293b] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                                    class="w-full bg-[#1e293b] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
                                                 {% for channel in channels %}
                                                     <option value="{{ channel.id }}" {% if channel.id == event.channel_id %}selected{% endif %}>#{{ channel.name }}</option>
                                                 {% endfor %}
@@ -164,7 +164,7 @@
                                         <div class="sm:col-span-2">
                                             <label class="block text-xs font-medium text-slate-400 mb-1">Ziel-Rolle</label>
                                             <select name="target_role_id"
-                                                    class="w-full bg-[#1e293b] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                                    class="w-full bg-[#1e293b] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
                                                 <option value="" {% if not event.target_role_id %}selected{% endif %}>— keine Einschränkung —</option>
                                                 {% for role in roles %}
                                                     <option value="{{ role.id }}" {% if role.id == event.target_role_id %}selected{% endif %}>@{{ role.name }}</option>
@@ -173,7 +173,7 @@
                                         </div>
                                         <div class="sm:col-span-2 flex items-center justify-end gap-3 pt-1">
                                             <button type="submit"
-                                                    class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 transition-colors text-white text-sm font-medium px-4 py-2 rounded-lg">
+                                                    class="inline-flex items-center gap-1.5 bg-violet-600 hover:bg-violet-500 transition-colors text-white text-sm font-medium px-4 py-2 rounded-lg">
                                                 Speichern
                                             </button>
                                         </div>

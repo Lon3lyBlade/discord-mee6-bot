@@ -15,14 +15,14 @@
         <div class="flex-1 flex flex-col min-w-0">
             <header class="h-16 border-b border-slate-800 bg-[#0f172a]/80 backdrop-blur px-4 md:px-6 flex items-center justify-between gap-4">
                 <div class="flex items-center gap-3 min-w-0 flex-1">
-                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center font-bold text-sm shrink-0 md:hidden">B</div>
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center font-bold text-sm shrink-0 md:hidden">B</div>
 
                     <div class="relative w-full max-w-xs hidden sm:block">
                         <svg class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
                         </svg>
                         <input id="guild-search" type="text" placeholder="Server durchsuchen..."
-                               class="w-full bg-slate-800/60 border border-slate-800 rounded-full pl-9 pr-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+                               class="w-full bg-slate-800/60 border border-slate-800 rounded-full pl-9 pr-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50">
                     </div>
                 </div>
                 <div class="flex items-center gap-4 shrink-0">
@@ -50,7 +50,7 @@
                 {% set admin_count = guilds | length - owner_count %}
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-10">
-                    <div class="relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-indigo-600 to-violet-700 shadow-lg shadow-indigo-900/30">
+                    <div class="relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-violet-600 to-purple-700 shadow-lg shadow-violet-900/30">
                         <div class="absolute inset-0 bg-gradient-to-br from-white/[0.08] to-transparent pointer-events-none"></div>
                         <div class="relative flex items-start justify-between">
                             <div>
@@ -66,7 +66,7 @@
                         </div>
                     </div>
 
-                    <div class="relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-blue-600 to-cyan-600 shadow-lg shadow-blue-900/30">
+                    <div class="relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-900/30">
                         <div class="absolute inset-0 bg-gradient-to-br from-white/[0.08] to-transparent pointer-events-none"></div>
                         <div class="relative flex items-start justify-between">
                             <div>
@@ -109,10 +109,10 @@
                     <div id="guild-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                         {% for guild in guilds %}
                             <div data-guild-name="{{ guild.name | lower }}"
-                                 class="group relative rounded-2xl border border-slate-800 bg-[#1e293b] overflow-hidden shadow-lg hover:shadow-indigo-500/10 hover:-translate-y-0.5 transition-all">
-                                <div class="h-16 bg-gradient-to-br from-indigo-600/40 via-violet-600/30 to-[#1e293b] relative">
+                                 class="group relative rounded-2xl border border-slate-800 bg-[#1e293b] overflow-hidden shadow-lg hover:shadow-violet-500/10 hover:-translate-y-0.5 transition-all">
+                                <div class="h-16 bg-gradient-to-br from-violet-600/40 via-violet-600/30 to-[#1e293b] relative">
                                     <div class="absolute inset-0 bg-gradient-to-br from-white/[0.06] to-transparent pointer-events-none"></div>
-                                    <span class="absolute top-3 right-3 text-[10px] uppercase tracking-wide font-semibold px-2 py-0.5 rounded-full {{ 'bg-amber-500/20 text-amber-300' if guild.owner else 'bg-indigo-500/20 text-indigo-300' }}">
+                                    <span class="absolute top-3 right-3 text-[10px] uppercase tracking-wide font-semibold px-2 py-0.5 rounded-full {{ 'bg-amber-500/20 text-amber-300' if guild.owner else 'bg-violet-500/20 text-violet-300' }}">
                                         {{ 'Owner' if guild.owner else 'Admin' }}
                                     </span>
                                 </div>
@@ -121,13 +121,13 @@
                                         <img src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png"
                                              alt="{{ guild.name }}" class="w-16 h-16 rounded-full ring-4 ring-[#1e293b] mb-3">
                                     {% else %}
-                                        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-xl font-bold ring-4 ring-[#1e293b] mb-3">
+                                        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center text-xl font-bold ring-4 ring-[#1e293b] mb-3">
                                             {{ guild.name[0] | upper }}
                                         </div>
                                     {% endif %}
                                     <h3 class="font-semibold truncate mb-4">{{ guild.name }}</h3>
                                     <a href="{{ url_for('server_detail', guild_id=guild.id) }}"
-                                       class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:brightness-110 transition-all text-white text-sm font-semibold py-2 rounded-lg">
+                                       class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 transition-all text-white text-sm font-semibold py-2 rounded-lg">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />

@@ -14,14 +14,14 @@
         <div class="flex-1 flex flex-col min-w-0">
             <header class="relative z-30 h-16 border-b border-slate-800 bg-[#0f172a]/80 backdrop-blur px-4 md:px-6 flex items-center justify-between gap-4">
                 <div class="flex items-center gap-3 min-w-0">
-                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center font-bold text-sm shrink-0 md:hidden">B</div>
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center font-bold text-sm shrink-0 md:hidden">B</div>
 
                     {% if guild %}
                         {% if guild.icon %}
                             <img src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png"
                                  alt="{{ guild.name }}" class="w-9 h-9 rounded-full ring-2 ring-slate-800 shrink-0">
                         {% else %}
-                            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-sm font-bold shrink-0">
+                            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center text-sm font-bold shrink-0">
                                 {{ guild.name[0] | upper }}
                             </div>
                         {% endif %}
@@ -41,7 +41,7 @@
                                 <p class="px-2.5 py-1.5 text-[11px] uppercase tracking-wide text-slate-500">Server wechseln</p>
                                 {% for g in guilds %}
                                     <a href="{{ url_for('server_detail', guild_id=g.id) }}"
-                                       class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-colors {{ 'bg-indigo-600/15 text-indigo-300' if g.id == guild.id else 'text-slate-300 hover:bg-slate-800/70' }}">
+                                       class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-colors {{ 'bg-violet-600/15 text-violet-300' if g.id == guild.id else 'text-slate-300 hover:bg-slate-800/70' }}">
                                         {% if g.icon %}
                                             <img src="https://cdn.discordapp.com/icons/{{ g.id }}/{{ g.icon }}.png" class="w-6 h-6 rounded-full shrink-0">
                                         {% else %}
