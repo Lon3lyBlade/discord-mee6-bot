@@ -461,10 +461,21 @@ def fetch_levels_data(guild_id: str):
             timeout=5,
         )
         rewards = rewards_response.json()["rewards"]
+        # Bewusst alle Rollen statt der AutoRole-gefilterten Liste (nur @everyone raus):
+        # Für die XP-Ausschlussliste vergibt der Bot gar keine Rolle, und bei den
+        # Level-Belohnungen soll der Admin alle Rollen sehen und erst beim Speichern eine
+        # klare Fehlermeldung bekommen, falls eine Rolle nicht vergebbar ist (statt dass sie
+        # einfach aus der Auswahl verschwindet).
+        roles_response = requests.get(
+            f"{BOT_API_URL}/api/guilds/{guild_id}/roles/all",
+            headers={"Authorization": f"Bearer {INTERNAL_API_SECRET}"},
+            timeout=5,
+        )
+        roles = roles_response.json()["roles"]
     except requests.RequestException:
         return "unreachable", None
 
-    return None, {"leaderboard": leaderboard, "level_config": level_config, "rewards": rewards}
+    return None, {"leaderboard": leaderboard, "level_config": level_config, "rewards": rewards, "roles": roles}
 
 
 @app.route("/server/<guild_id>/levels")
@@ -490,7 +501,7 @@ def levels_page(guild_id):
         user=user,
         guilds=admin_guilds,
         channels=data["channels"],
-        roles=data["roles"],
+        roles=levels_data["roles"],
         leaderboard=levels_data["leaderboard"],
         level_config=levels_data["level_config"],
         rewards=levels_data["rewards"],
