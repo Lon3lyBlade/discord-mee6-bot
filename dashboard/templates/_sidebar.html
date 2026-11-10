@@ -1,44 +1,51 @@
 {% macro section_label(text) %}
-<p class="px-3 mb-2 mt-5 first:mt-0 text-[11px] font-semibold uppercase tracking-wider text-slate-600">{{ text }}</p>
+<p class="px-3 mb-1.5 mt-5 first:mt-0 text-xs text-slate-600">{{ text }}</p>
 {% endmacro %}
 
-{% macro guild_nav_link(endpoint, label, icon_paths, key) %}
-{% if guild %}
-<a href="{{ url_for(endpoint, guild_id=guild.id) }}"
-   class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors {{ 'bg-violet-600/15 text-violet-300' if active == key else 'text-slate-400 hover:text-slate-100 hover:bg-white/5' }}">
-    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+{% macro nav_link(href, label, icon_paths, is_active, is_disabled=False, soon=False) %}
+{% if is_disabled %}
+<span class="flex items-center gap-3 pl-3 pr-3 py-2 text-sm border-l-2 border-transparent text-slate-600 cursor-default">
+    <svg class="w-[18px] h-[18px] shrink-0" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
+        {% for icon_path in icon_paths %}<path stroke-linecap="round" stroke-linejoin="round" d="{{ icon_path }}" />{% endfor %}
+    </svg>
+    <span class="truncate">{{ label }}</span>
+    {% if soon %}
+        <span class="ml-auto text-[11px] text-slate-700 border border-line rounded px-1.5 py-0.5">Bald</span>
+    {% endif %}
+</span>
+{% else %}
+<a href="{{ href }}"
+   class="flex items-center gap-3 pl-3 pr-3 py-2 text-sm border-l-2 transition-colors {{ 'border-signal bg-panel2 text-signal' if is_active else 'border-transparent text-slate-400 hover:text-slate-100 hover:bg-panel2' }}">
+    <svg class="w-[18px] h-[18px] shrink-0" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
         {% for icon_path in icon_paths %}<path stroke-linecap="round" stroke-linejoin="round" d="{{ icon_path }}" />{% endfor %}
     </svg>
     <span class="truncate">{{ label }}</span>
 </a>
-{% else %}
-<span class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-500 opacity-60 cursor-default">
-    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-        {% for icon_path in icon_paths %}<path stroke-linecap="round" stroke-linejoin="round" d="{{ icon_path }}" />{% endfor %}
-    </svg>
-    <span class="truncate">{{ label }}</span>
-</span>
 {% endif %}
 {% endmacro %}
 
-<aside class="hidden md:flex md:w-64 md:flex-col shrink-0 border-r border-white/10 bg-white/[0.02]">
-    <div class="h-16 flex items-center gap-2.5 px-5 border-b border-white/10">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center font-bold text-sm shrink-0 shadow-lg shadow-violet-900/40">B</div>
+{% macro guild_nav_link(endpoint, label, icon_paths, key) %}
+{% if guild %}
+    {{ nav_link(url_for(endpoint, guild_id=guild.id), label, icon_paths, active == key) }}
+{% else %}
+    {{ nav_link('#', label, icon_paths, False, is_disabled=True) }}
+{% endif %}
+{% endmacro %}
+
+<aside class="hidden md:flex md:w-60 md:flex-col shrink-0 border-r border-line bg-panel">
+    <div class="h-16 flex items-center gap-2.5 px-5 border-b border-line">
+        <div class="w-8 h-8 rounded-md bg-panel2 border border-line flex items-center justify-center font-mono font-medium text-signal text-sm shrink-0">B</div>
         <div class="min-w-0">
-            <p class="font-semibold leading-tight truncate">Bot Dashboard</p>
-            <p class="text-[11px] text-slate-500 leading-tight">Control Center</p>
+            <p class="font-medium leading-tight truncate">Bot Dashboard</p>
+            <p class="text-xs text-slate-600 leading-tight">Control center</p>
         </div>
     </div>
 
-    <nav class="flex-1 px-3 py-4 overflow-y-auto">
+    <nav class="flex-1 px-0 py-4 overflow-y-auto">
         {{ section_label('Übersicht') }}
-        <a href="{{ url_for('dashboard') }}"
-           class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors {{ 'bg-violet-600/15 text-violet-300' if active == 'dashboard' else 'text-slate-400 hover:text-slate-100 hover:bg-white/5' }}">
-            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-            </svg>
-            Dashboard
-        </a>
+        {{ nav_link(url_for('dashboard'), 'Dashboard', [
+            'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
+        ], active == 'dashboard') }}
 
         {{ section_label('Server') }}
         {{ guild_nav_link('server_detail', 'Settings', [
@@ -78,13 +85,7 @@
         {% if disabled_items %}
             {{ section_label('Bald verfügbar') }}
             {% for label, icon_path in disabled_items %}
-            <span class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-500 opacity-60 cursor-default" title="Bald verfügbar">
-                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="{{ icon_path }}" />
-                </svg>
-                <span class="truncate">{{ label }}</span>
-                <span class="ml-auto text-[10px] uppercase tracking-wide bg-white/5 text-slate-500 px-1.5 py-0.5 rounded-full">Bald</span>
-            </span>
+                {{ nav_link('#', label, [icon_path], False, is_disabled=True, soon=True) }}
             {% endfor %}
         {% endif %}
     </nav>

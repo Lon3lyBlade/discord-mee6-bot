@@ -2,198 +2,190 @@
 {% block title %}Events{% endblock %}
 
 {% block page_content %}
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-10">
         <form method="post" action="{{ url_for('create_event', guild_id=guild.id) }}"
-              class="relative rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 space-y-4 overflow-hidden lg:col-span-1">
-            <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
-            <div class="relative space-y-4">
-                <h2 class="font-semibold">Neues Event</h2>
-                <p class="text-sm text-slate-400">
-                    Postet ein Event-Embed mit Zusage/Absage/Vielleicht-Buttons in den gewählten Channel.
-                </p>
+              class="rounded-lg border border-line bg-panel p-6 space-y-4 lg:col-span-1">
+            <h2 class="font-medium">Neues Event</h2>
+            <p class="text-sm text-slate-500">
+                Postet ein Event-Embed mit Zusage/Absage/Vielleicht-Buttons in den gewählten Channel.
+            </p>
 
-                <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-1" for="title">Titel</label>
-                    <input type="text" id="title" name="title" required maxlength="256"
-                           class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-1" for="description">Beschreibung</label>
-                    <textarea id="description" name="description" rows="3" maxlength="1000"
-                              class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"></textarea>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-1" for="event_time">Datum &amp; Uhrzeit</label>
-                    <input type="datetime-local" id="event_time" name="event_time" required
-                           class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
-                    <p class="text-xs text-slate-500 mt-1">Zeitzone: Europe/Berlin.</p>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-1" for="channel_id">Channel</label>
-                    <div class="relative">
-                        <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-semibold">#</span>
-                        <select id="channel_id" name="channel_id" required
-                                class="w-full appearance-none bg-[#0f172a] border border-slate-700 rounded-lg pl-8 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
-                            <option value="" disabled selected>— Channel wählen —</option>
-                            {% for channel in channels %}
-                                <option value="{{ channel.id }}">#{{ channel.name }}</option>
-                            {% endfor %}
-                        </select>
-                        <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-1" for="target_role_id">Ziel-Rolle</label>
-                    <div class="relative">
-                        <select id="target_role_id" name="target_role_id"
-                                class="w-full appearance-none bg-[#0f172a] border border-slate-700 rounded-lg px-3 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
-                            <option value="">— keine Einschränkung —</option>
-                            {% for role in roles %}
-                                <option value="{{ role.id }}">@{{ role.name }}</option>
-                            {% endfor %}
-                        </select>
-                        <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </div>
-                    <p class="text-xs text-slate-500 mt-1">
-                        Ist eine Rolle gewählt, sieht nur diese Rolle den Channel und kann am Event teilnehmen.
-                    </p>
-                </div>
-
-                <button type="submit"
-                        class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 transition-all text-white font-semibold py-2.5 rounded-lg">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-                    </svg>
-                    Event erstellen
-                </button>
+            <div>
+                <label class="block text-sm text-slate-400 mb-1" for="title">Titel</label>
+                <input type="text" id="title" name="title" required maxlength="256"
+                       class="w-full bg-ink border border-line rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-signal/60">
             </div>
+
+            <div>
+                <label class="block text-sm text-slate-400 mb-1" for="description">Beschreibung</label>
+                <textarea id="description" name="description" rows="3" maxlength="1000"
+                          class="w-full bg-ink border border-line rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-signal/60"></textarea>
+            </div>
+
+            <div>
+                <label class="block text-sm text-slate-400 mb-1" for="event_time">Datum &amp; Uhrzeit</label>
+                <input type="datetime-local" id="event_time" name="event_time" required
+                       class="w-full bg-ink border border-line rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-signal/60">
+                <p class="text-xs text-slate-600 mt-1">Zeitzone: Europe/Berlin.</p>
+            </div>
+
+            <div>
+                <label class="block text-sm text-slate-400 mb-1" for="channel_id">Channel</label>
+                <div class="relative">
+                    <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 font-mono">#</span>
+                    <select id="channel_id" name="channel_id" required
+                            class="w-full appearance-none bg-ink border border-line rounded pl-8 pr-9 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-signal/60">
+                        <option value="" disabled selected>— Channel wählen —</option>
+                        {% for channel in channels %}
+                            <option value="{{ channel.id }}">#{{ channel.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm text-slate-400 mb-1" for="target_role_id">Ziel-Rolle</label>
+                <div class="relative">
+                    <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 font-mono">@</span>
+                    <select id="target_role_id" name="target_role_id"
+                            class="w-full appearance-none bg-ink border border-line rounded pl-8 pr-9 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-signal/60">
+                        <option value="">— keine Einschränkung —</option>
+                        {% for role in roles %}
+                            <option value="{{ role.id }}">{{ role.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </div>
+                <p class="text-xs text-slate-600 mt-1">
+                    Ist eine Rolle gewählt, sieht nur diese Rolle den Channel und kann am Event teilnehmen.
+                </p>
+            </div>
+
+            <button type="submit"
+                    class="w-full inline-flex items-center justify-center gap-2 bg-signal hover:bg-signal/90 transition-colors text-ink font-medium py-2.5 rounded">
+                Event erstellen
+            </button>
         </form>
 
-        <div class="relative rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 overflow-hidden lg:col-span-2">
-            <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
-            <div class="relative">
-                <h2 class="font-semibold mb-1">Kommende Events</h2>
-                <p class="text-sm text-slate-400 mb-4">
-                    Alle anstehenden Termine dieses Servers, chronologisch sortiert. Mitglieder können über die
-                    Buttons im Event-Post zu-/absagen - die Liste hier aktualisiert sich live.
-                </p>
+        <div class="rounded-lg border border-line bg-panel p-6 lg:col-span-2">
+            <h2 class="font-medium mb-1">Kommende Events</h2>
+            <p class="text-sm text-slate-500 mb-4">
+                Alle anstehenden Termine dieses Servers, chronologisch sortiert. Mitglieder können über die
+                Buttons im Event-Post zu-/absagen - die Liste hier aktualisiert sich live.
+            </p>
 
-                {% if events %}
-                    <div class="space-y-3">
-                        {% for event in events %}
-                            <details class="group rounded-lg border border-white/10 bg-white/[0.02] overflow-hidden {% if event.status == 'cancelled' %}opacity-60{% endif %}">
-                                <summary class="list-none [&::-webkit-details-marker]:hidden cursor-pointer px-4 py-3 flex items-center justify-between gap-3">
-                                    <div class="min-w-0">
-                                        <p class="font-medium truncate">
-                                            {{ event.title }}
-                                            {% if event.status == 'cancelled' %}
-                                                <span class="ml-2 text-[10px] uppercase tracking-wide bg-red-900/40 text-red-300 px-1.5 py-0.5 rounded">Abgesagt</span>
-                                            {% endif %}
-                                        </p>
-                                        <p class="text-xs text-slate-500 mt-0.5">
-                                            {{ event.event_time_display }} Uhr · #{{ event.channel_name or "unbekannt" }}
-                                            {% if event.target_role_name %} · @{{ event.target_role_name }}{% endif %}
-                                        </p>
-                                    </div>
-                                    <div class="flex items-center gap-2 text-xs shrink-0">
-                                        <span class="text-emerald-400">✅ {{ event.rsvps.yes | length }}</span>
-                                        <span class="text-red-400">❌ {{ event.rsvps.no | length }}</span>
-                                        <span class="text-amber-400">❓ {{ event.rsvps.maybe | length }}</span>
-                                        <svg class="w-4 h-4 text-slate-500 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </div>
-                                </summary>
-
-                                <div class="border-t border-white/10 px-4 py-4 space-y-4">
-                                    {% if event.description %}
-                                        <p class="text-sm text-slate-300">{{ event.description }}</p>
-                                    {% endif %}
-
-                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-                                        {% for status, label, color in [("yes", "✅ Zusagen", "text-emerald-400"), ("no", "❌ Absagen", "text-red-400"), ("maybe", "❓ Vielleicht", "text-amber-400")] %}
-                                            <div>
-                                                <p class="{{ color }} font-medium mb-1">{{ label }} ({{ event.rsvps[status] | length }})</p>
-                                                {% if event.rsvps[status] %}
-                                                    <ul class="text-slate-400 space-y-0.5">
-                                                        {% for member in event.rsvps[status] %}
-                                                            <li class="truncate">{{ member.display }}</li>
-                                                        {% endfor %}
-                                                    </ul>
-                                                {% else %}
-                                                    <p class="text-slate-600">—</p>
-                                                {% endif %}
-                                            </div>
-                                        {% endfor %}
-                                    </div>
-
-                                    <form method="post" action="{{ url_for('edit_event', guild_id=guild.id, event_id=event.id) }}"
-                                          class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-white/10">
-                                        <div class="sm:col-span-2">
-                                            <label class="block text-xs font-medium text-slate-400 mb-1">Titel</label>
-                                            <input type="text" name="title" value="{{ event.title }}" required maxlength="256"
-                                                   class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
-                                        </div>
-                                        <div class="sm:col-span-2">
-                                            <label class="block text-xs font-medium text-slate-400 mb-1">Beschreibung</label>
-                                            <textarea name="description" rows="2" maxlength="1000"
-                                                      class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">{{ event.description or "" }}</textarea>
-                                        </div>
-                                        <div>
-                                            <label class="block text-xs font-medium text-slate-400 mb-1">Datum &amp; Uhrzeit</label>
-                                            <input type="datetime-local" name="event_time" value="{{ event.event_time_input }}" required
-                                                   class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
-                                        </div>
-                                        <div>
-                                            <label class="block text-xs font-medium text-slate-400 mb-1">Channel</label>
-                                            <select name="channel_id" required
-                                                    class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
-                                                {% for channel in channels %}
-                                                    <option value="{{ channel.id }}" {% if channel.id == event.channel_id %}selected{% endif %}>#{{ channel.name }}</option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
-                                        <div class="sm:col-span-2">
-                                            <label class="block text-xs font-medium text-slate-400 mb-1">Ziel-Rolle</label>
-                                            <select name="target_role_id"
-                                                    class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
-                                                <option value="" {% if not event.target_role_id %}selected{% endif %}>— keine Einschränkung —</option>
-                                                {% for role in roles %}
-                                                    <option value="{{ role.id }}" {% if role.id == event.target_role_id %}selected{% endif %}>@{{ role.name }}</option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
-                                        <div class="sm:col-span-2 flex items-center justify-end gap-3 pt-1">
-                                            <button type="submit"
-                                                    class="inline-flex items-center gap-1.5 bg-violet-600 hover:bg-violet-500 transition-colors text-white text-sm font-medium px-4 py-2 rounded-lg">
-                                                Speichern
-                                            </button>
-                                        </div>
-                                    </form>
-
-                                    <form method="post" action="{{ url_for('delete_event', guild_id=guild.id, event_id=event.id) }}"
-                                          onsubmit="return confirm('Event wirklich absagen? Die Nachricht auf Discord wird entfernt.');">
-                                        <button type="submit"
-                                                class="text-red-400 hover:text-red-300 text-xs font-medium transition-colors">
-                                            Event absagen &amp; löschen
-                                        </button>
-                                    </form>
+            {% if events %}
+                <div class="space-y-3">
+                    {% for event in events %}
+                        <details class="group rounded border border-line bg-ink {% if event.status == 'cancelled' %}opacity-60{% endif %}">
+                            <summary class="list-none [&::-webkit-details-marker]:hidden cursor-pointer px-4 py-3 flex items-center justify-between gap-3">
+                                <div class="min-w-0">
+                                    <p class="font-medium truncate">
+                                        {{ event.title }}
+                                        {% if event.status == 'cancelled' %}
+                                            <span class="ml-2 text-xs text-red-400">Abgesagt</span>
+                                        {% endif %}
+                                    </p>
+                                    <p class="text-xs text-slate-600 mt-0.5 font-mono">
+                                        {{ event.event_time_display }} · #{{ event.channel_name or "unbekannt" }}
+                                        {% if event.target_role_name %} · @{{ event.target_role_name }}{% endif %}
+                                    </p>
                                 </div>
-                            </details>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <p class="text-sm text-slate-500">Es gibt noch keine anstehenden Events auf diesem Server.</p>
-                {% endif %}
-            </div>
+                                <div class="flex items-center gap-2 text-xs shrink-0 font-mono">
+                                    <span class="text-emerald-400">✅ {{ event.rsvps.yes | length }}</span>
+                                    <span class="text-red-400">❌ {{ event.rsvps.no | length }}</span>
+                                    <span class="text-amber-400">❓ {{ event.rsvps.maybe | length }}</span>
+                                    <svg class="w-4 h-4 text-slate-500 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
+                            </summary>
+
+                            <div class="border-t border-line px-4 py-4 space-y-4">
+                                {% if event.description %}
+                                    <p class="text-sm text-slate-300">{{ event.description }}</p>
+                                {% endif %}
+
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                                    {% for status, label, color in [("yes", "✅ Zusagen", "text-emerald-400"), ("no", "❌ Absagen", "text-red-400"), ("maybe", "❓ Vielleicht", "text-amber-400")] %}
+                                        <div>
+                                            <p class="{{ color }} font-medium mb-1">{{ label }} ({{ event.rsvps[status] | length }})</p>
+                                            {% if event.rsvps[status] %}
+                                                <ul class="text-slate-500 space-y-0.5">
+                                                    {% for member in event.rsvps[status] %}
+                                                        <li class="truncate">{{ member.display }}</li>
+                                                    {% endfor %}
+                                                </ul>
+                                            {% else %}
+                                                <p class="text-slate-700">—</p>
+                                            {% endif %}
+                                        </div>
+                                    {% endfor %}
+                                </div>
+
+                                <form method="post" action="{{ url_for('edit_event', guild_id=guild.id, event_id=event.id) }}"
+                                      class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-line">
+                                    <div class="sm:col-span-2">
+                                        <label class="block text-xs text-slate-500 mb-1">Titel</label>
+                                        <input type="text" name="title" value="{{ event.title }}" required maxlength="256"
+                                               class="w-full bg-panel border border-line rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-signal/60">
+                                    </div>
+                                    <div class="sm:col-span-2">
+                                        <label class="block text-xs text-slate-500 mb-1">Beschreibung</label>
+                                        <textarea name="description" rows="2" maxlength="1000"
+                                                  class="w-full bg-panel border border-line rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-signal/60">{{ event.description or "" }}</textarea>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs text-slate-500 mb-1">Datum &amp; Uhrzeit</label>
+                                        <input type="datetime-local" name="event_time" value="{{ event.event_time_input }}" required
+                                               class="w-full bg-panel border border-line rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-signal/60">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs text-slate-500 mb-1">Channel</label>
+                                        <select name="channel_id" required
+                                                class="w-full bg-panel border border-line rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-signal/60">
+                                            {% for channel in channels %}
+                                                <option value="{{ channel.id }}" {% if channel.id == event.channel_id %}selected{% endif %}>#{{ channel.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="sm:col-span-2">
+                                        <label class="block text-xs text-slate-500 mb-1">Ziel-Rolle</label>
+                                        <select name="target_role_id"
+                                                class="w-full bg-panel border border-line rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-signal/60">
+                                            <option value="" {% if not event.target_role_id %}selected{% endif %}>— keine Einschränkung —</option>
+                                            {% for role in roles %}
+                                                <option value="{{ role.id }}" {% if role.id == event.target_role_id %}selected{% endif %}>@{{ role.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="sm:col-span-2 flex items-center justify-end gap-3 pt-1">
+                                        <button type="submit"
+                                                class="inline-flex items-center gap-1.5 bg-signal hover:bg-signal/90 transition-colors text-ink text-sm font-medium px-4 py-2 rounded">
+                                            Speichern
+                                        </button>
+                                    </div>
+                                </form>
+
+                                <form method="post" action="{{ url_for('delete_event', guild_id=guild.id, event_id=event.id) }}"
+                                      onsubmit="return confirm('Event wirklich absagen? Die Nachricht auf Discord wird entfernt.');">
+                                    <button type="submit"
+                                            class="text-red-400 hover:text-red-300 text-xs font-medium transition-colors">
+                                        Event absagen &amp; löschen
+                                    </button>
+                                </form>
+                            </div>
+                        </details>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-sm text-slate-500">Es gibt noch keine anstehenden Events auf diesem Server.</p>
+            {% endif %}
         </div>
     </div>
 {% endblock %}

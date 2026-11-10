@@ -4,49 +4,70 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Server verwalten{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        ink: '#0D0E12',
+                        panel: '#16171C',
+                        panel2: '#1D1F26',
+                        line: '#272A33',
+                        signal: '#F2B705',
+                    },
+                    fontFamily: {
+                        sans: ['"Space Grotesk"', 'ui-sans-serif', 'sans-serif'],
+                        mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
+                    },
+                },
+            },
+        };
+    </script>
 </head>
-<body class="bg-[#0b0f1a] text-slate-100 min-h-screen">
-    <div class="fixed inset-0 pointer-events-none bg-[radial-gradient(ellipse_900px_500px_at_50%_-10%,rgba(139,92,246,0.12),transparent)]"></div>
+<body class="bg-ink text-slate-200 font-sans antialiased min-h-screen">
 
-    <div class="relative flex min-h-screen">
+    <div class="flex min-h-screen">
         {% include "_sidebar.html" %}
 
         <div class="flex-1 flex flex-col min-w-0">
-            <header class="relative z-30 h-16 border-b border-white/10 bg-white/[0.03] backdrop-blur-xl px-4 md:px-6 flex items-center justify-between gap-4">
+            <header class="h-16 border-b border-line bg-panel px-4 md:px-6 flex items-center justify-between gap-4">
                 <div class="flex items-center gap-3 min-w-0">
-                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center font-bold text-sm shrink-0 md:hidden">B</div>
+                    <div class="w-8 h-8 rounded-md bg-panel2 border border-line flex items-center justify-center font-mono font-medium text-signal text-sm shrink-0 md:hidden">B</div>
 
                     {% if guild %}
                         {% if guild.icon %}
                             <img src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png"
-                                 alt="{{ guild.name }}" class="w-9 h-9 rounded-full ring-2 ring-white/10 shrink-0">
+                                 alt="{{ guild.name }}" class="w-9 h-9 rounded-full ring-1 ring-line shrink-0">
                         {% else %}
-                            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center text-sm font-bold shrink-0">
+                            <div class="w-9 h-9 rounded-full bg-panel2 border border-line flex items-center justify-center text-sm font-medium text-slate-300 shrink-0">
                                 {{ guild.name[0] | upper }}
                             </div>
                         {% endif %}
                         <div class="min-w-0">
-                            <p class="text-[11px] text-slate-500 leading-none">Hub von</p>
-                            <h1 class="font-semibold truncate leading-tight">{{ guild.name }}</h1>
+                            <p class="text-xs text-slate-600 leading-none">Hub von</p>
+                            <h1 class="font-medium truncate leading-tight">{{ guild.name }}</h1>
                         </div>
 
                         {% if guilds %}
                         <details class="relative shrink-0">
-                            <summary class="list-none [&::-webkit-details-marker]:hidden flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:text-slate-100 hover:bg-white/10 cursor-pointer transition-colors">
+                            <summary class="list-none [&::-webkit-details-marker]:hidden flex items-center justify-center w-7 h-7 rounded text-slate-500 hover:text-slate-200 hover:bg-panel2 cursor-pointer transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                                 </svg>
                             </summary>
-                            <div class="absolute left-0 mt-2 w-56 rounded-2xl border border-white/10 bg-[#141a2e]/95 backdrop-blur-xl shadow-xl p-1.5 z-20 max-h-80 overflow-y-auto">
-                                <p class="px-2.5 py-1.5 text-[11px] uppercase tracking-wide text-slate-500">Server wechseln</p>
+                            <div class="absolute left-0 mt-2 w-56 rounded-lg border border-line bg-panel2 shadow-xl p-1.5 z-20 max-h-80 overflow-y-auto">
+                                <p class="px-2.5 py-1.5 text-xs text-slate-600">Server wechseln</p>
                                 {% for g in guilds %}
                                     <a href="{{ url_for('server_detail', guild_id=g.id) }}"
-                                       class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-sm transition-colors {{ 'bg-violet-600/15 text-violet-300' if g.id == guild.id else 'text-slate-300 hover:bg-white/5' }}">
+                                       class="flex items-center gap-2.5 px-2.5 py-2 rounded text-sm transition-colors {{ 'bg-panel text-signal' if g.id == guild.id else 'text-slate-300 hover:bg-panel' }}">
                                         {% if g.icon %}
                                             <img src="https://cdn.discordapp.com/icons/{{ g.id }}/{{ g.icon }}.png" class="w-6 h-6 rounded-full shrink-0">
                                         {% else %}
-                                            <div class="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-[10px] font-bold shrink-0">
+                                            <div class="w-6 h-6 rounded-full bg-panel flex items-center justify-center text-[10px] font-medium shrink-0">
                                                 {{ g.name[0] | upper }}
                                             </div>
                                         {% endif %}
@@ -57,25 +78,25 @@
                         </details>
                         {% endif %}
                     {% else %}
-                        <h1 class="font-semibold truncate">Server verwalten</h1>
+                        <h1 class="font-medium truncate">Server verwalten</h1>
                     {% endif %}
                 </div>
 
                 <div class="flex items-center gap-3 shrink-0">
                     <button type="button" onclick="location.reload()" title="Aktualisieren"
-                            class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-100 bg-white/5 hover:bg-white/10 transition-colors">
+                            class="w-8 h-8 rounded flex items-center justify-center text-slate-500 hover:text-slate-200 bg-panel2 hover:bg-line transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
                     </button>
-                    <div class="w-px h-6 bg-white/10"></div>
+                    <div class="w-px h-6 bg-line"></div>
                     {% if user %}
                     <div class="flex items-center gap-2">
                         {% if user.avatar %}
                             <img src="https://cdn.discordapp.com/avatars/{{ user.id }}/{{ user.avatar }}.png"
-                                 alt="{{ user.username }}" class="w-8 h-8 rounded-full ring-2 ring-white/10">
+                                 alt="{{ user.username }}" class="w-8 h-8 rounded-full ring-1 ring-line">
                         {% else %}
-                            <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs">
+                            <div class="w-8 h-8 rounded-full bg-panel2 flex items-center justify-center text-xs">
                                 {{ user.username[0] | upper }}
                             </div>
                         {% endif %}
@@ -83,27 +104,27 @@
                     </div>
                     {% endif %}
                     <a href="{{ url_for('logout') }}"
-                       class="text-sm text-slate-400 hover:text-white transition-colors">Logout</a>
+                       class="text-sm text-slate-500 hover:text-slate-200 transition-colors">Logout</a>
                 </div>
             </header>
 
-            <main class="relative flex-1 px-4 md:px-8 py-10 max-w-6xl w-full mx-auto">
+            <main class="flex-1 px-4 md:px-8 py-10 max-w-6xl w-full mx-auto">
                 {% if error == "access" %}
-                    <div class="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-10 text-center text-slate-400">
+                    <div class="rounded-lg border border-line bg-panel p-10 text-center text-slate-500">
                         Du hast auf diesem Server keine Administratorrechte.
                     </div>
                 {% elif error == "not_in_guild" %}
-                    <div class="mt-2 rounded-2xl bg-amber-900/20 border border-amber-800/60 text-amber-300 px-4 py-3 text-sm">
+                    <div class="mt-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 px-4 py-3 text-sm">
                         Der Bot ist auf diesem Server nicht eingeladen. Lade ihn zuerst ein, um Einstellungen
                         vornehmen zu können.
                     </div>
                 {% elif error == "unreachable" %}
-                    <div class="mt-2 rounded-2xl bg-red-900/20 border border-red-800/60 text-red-300 px-4 py-3 text-sm">
+                    <div class="mt-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-300 px-4 py-3 text-sm">
                         Der Bot ist über die interne API aktuell nicht erreichbar. Versuche es später erneut.
                     </div>
                 {% else %}
                     {% if message %}
-                        <div class="mb-6 rounded-2xl bg-emerald-900/20 border border-emerald-800/60 text-emerald-300 px-4 py-3 text-sm">
+                        <div class="mb-6 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 px-4 py-3 text-sm">
                             {{ message }}
                         </div>
                     {% endif %}
@@ -115,7 +136,6 @@
     </div>
 
     <script>
-        // <details>-Dropdowns (z. B. Server-Switcher) schließen, wenn außerhalb geklickt wird.
         document.addEventListener('click', (event) => {
             document.querySelectorAll('details[open]').forEach((details) => {
                 if (!details.contains(event.target)) {

@@ -2,141 +2,108 @@
 {% block title %}Server verwalten{% endblock %}
 
 {% block page_content %}
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-10">
         <form method="post" action="{{ url_for('set_welcome_channel', guild_id=guild.id) }}"
-              class="relative rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 space-y-4 overflow-hidden">
-            <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
-            <div class="relative space-y-4">
-                <div class="flex items-center gap-3 min-w-0">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-900/30">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                    </div>
-                    <h2 class="font-semibold truncate">Willkommensnachricht</h2>
-                </div>
-                <p class="text-sm text-slate-400">
-                    Channel, in dem neue Mitglieder automatisch begrüßt werden.
-                </p>
-                <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-1" for="channel_id">Channel</label>
-                    <div class="relative">
-                        <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-semibold">#</span>
-                        <select id="channel_id" name="channel_id"
-                                class="w-full appearance-none bg-[#0f172a] border border-slate-700 rounded-lg pl-8 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
-                            <option value="">— kein Channel ausgewählt —</option>
-                            {% for channel in channels %}
-                                <option value="{{ channel.id }}" {% if channel.id == config.welcome_channel_id %}selected{% endif %}>
-                                    #{{ channel.name }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                        <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </div>
-                </div>
-                <button type="submit"
-                        class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 transition-all text-white font-semibold py-2.5 rounded-lg">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                    </svg>
-                    Speichern
-                </button>
+              class="rounded-lg border border-line bg-panel p-6 space-y-4">
+            <div class="flex items-center gap-2 min-w-0">
+                <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <h2 class="font-medium truncate">Willkommensnachricht</h2>
             </div>
+            <p class="text-sm text-slate-500">
+                Channel, in dem neue Mitglieder automatisch begrüßt werden.
+            </p>
+            <div>
+                <label class="block text-sm text-slate-400 mb-1" for="channel_id">Channel</label>
+                <div class="relative">
+                    <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 font-mono">#</span>
+                    <select id="channel_id" name="channel_id"
+                            class="w-full appearance-none bg-ink border border-line rounded pl-8 pr-9 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-signal/60">
+                        <option value="">— kein Channel ausgewählt —</option>
+                        {% for channel in channels %}
+                            <option value="{{ channel.id }}" {% if channel.id == config.welcome_channel_id %}selected{% endif %}>
+                                #{{ channel.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </div>
+            </div>
+            <button type="submit"
+                    class="w-full inline-flex items-center justify-center gap-2 bg-signal hover:bg-signal/90 transition-colors text-ink font-medium py-2.5 rounded">
+                Speichern
+            </button>
         </form>
 
         <form method="post" action="{{ url_for('set_autorole', guild_id=guild.id) }}"
-              class="relative rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 space-y-4 overflow-hidden">
-            <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
-            <div class="relative space-y-4">
-                <div class="flex items-center gap-3 min-w-0">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shrink-0 shadow-lg shadow-amber-900/30">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622a11.955 11.955 0 01-8.618-3.04L12 2.944z" />
-                        </svg>
-                    </div>
-                    <h2 class="font-semibold truncate">AutoRole</h2>
-                </div>
-                <p class="text-sm text-slate-400">
-                    Rolle, die neue Mitglieder automatisch beim Beitritt erhalten.
-                </p>
-                <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-1" for="role_id">Rolle</label>
-                    <div class="relative">
-                        <svg class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622a11.955 11.955 0 01-8.618-3.04L12 2.944z" />
-                        </svg>
-                        <select id="role_id" name="role_id"
-                                class="w-full appearance-none bg-[#0f172a] border border-slate-700 rounded-lg pl-8 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
-                            <option value="">— keine Rolle ausgewählt —</option>
-                            {% for role in roles %}
-                                <option value="{{ role.id }}" {% if role.id == config.auto_role_id %}selected{% endif %}>
-                                    {{ role.name }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                        <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </div>
-                </div>
-                <button type="submit"
-                        class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 transition-all text-white font-semibold py-2.5 rounded-lg">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                    </svg>
-                    Speichern
-                </button>
+              class="rounded-lg border border-line bg-panel p-6 space-y-4">
+            <div class="flex items-center gap-2 min-w-0">
+                <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622a11.955 11.955 0 01-8.618-3.04L12 2.944z" />
+                </svg>
+                <h2 class="font-medium truncate">AutoRole</h2>
             </div>
+            <p class="text-sm text-slate-500">
+                Rolle, die neue Mitglieder automatisch beim Beitritt erhalten.
+            </p>
+            <div>
+                <label class="block text-sm text-slate-400 mb-1" for="role_id">Rolle</label>
+                <div class="relative">
+                    <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 font-mono">@</span>
+                    <select id="role_id" name="role_id"
+                            class="w-full appearance-none bg-ink border border-line rounded pl-8 pr-9 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-signal/60">
+                        <option value="">— keine Rolle ausgewählt —</option>
+                        {% for role in roles %}
+                            <option value="{{ role.id }}" {% if role.id == config.auto_role_id %}selected{% endif %}>
+                                {{ role.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </div>
+            </div>
+            <button type="submit"
+                    class="w-full inline-flex items-center justify-center gap-2 bg-signal hover:bg-signal/90 transition-colors text-ink font-medium py-2.5 rounded">
+                Speichern
+            </button>
         </form>
 
-        <div class="relative rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 overflow-hidden">
-            <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
-            <div class="relative">
-                <div class="flex items-center gap-3 mb-1">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-fuchsia-600 to-pink-600 flex items-center justify-center shrink-0 shadow-lg shadow-fuchsia-900/30">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm6 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0V5a2 2 0 012-2h0a2 2 0 012 2v14" />
-                        </svg>
-                    </div>
-                    <h2 class="font-semibold truncate">Server-Statistiken</h2>
+        <div class="rounded-lg border border-line bg-panel">
+            <div class="px-6 pt-6">
+                <div class="flex items-center gap-2 mb-1">
+                    <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm6 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0V5a2 2 0 012-2h0a2 2 0 012 2v14" />
+                    </svg>
+                    <h2 class="font-medium truncate">Server-Statistiken</h2>
                 </div>
-                <p class="text-sm text-slate-400 mb-4">Live vom Bot abgerufen.</p>
-                <div class="space-y-3">
-                    <div class="flex items-center justify-between text-sm">
-                        <span class="flex items-center gap-2 text-slate-400">
-                            <span class="w-2 h-2 rounded-full bg-violet-500"></span>
-                            Mitglieder gesamt
-                        </span>
-                        <span class="font-semibold">{{ stats.member_count if stats else '—' }}</span>
-                    </div>
-                    <div class="flex items-center justify-between text-sm">
-                        <span class="flex items-center gap-2 text-slate-400">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                            Text-Channels
-                        </span>
-                        <span class="font-semibold">{{ stats.text_channel_count if stats else '—' }}</span>
-                    </div>
-                    <div class="flex items-center justify-between text-sm">
-                        <span class="flex items-center gap-2 text-slate-400">
-                            <span class="w-2 h-2 rounded-full bg-fuchsia-500"></span>
-                            Voice-Channels
-                        </span>
-                        <span class="font-semibold">{{ stats.voice_channel_count if stats else '—' }}</span>
-                    </div>
-                    <div class="flex items-center justify-between text-sm">
-                        <span class="flex items-center gap-2 text-slate-400">
-                            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                            Rollen
-                        </span>
-                        <span class="font-semibold">{{ roles | length if roles else '—' }}</span>
-                    </div>
-                </div>
-                <p class="text-[11px] text-slate-500 mt-4">
-                    Live-Online-Anzahl benötigt den privilegierten Presence-Intent und ist aktuell nicht aktiviert.
-                </p>
+                <p class="text-sm text-slate-500 mb-1">Live vom Bot abgerufen.</p>
             </div>
+            <div class="divide-y divide-line">
+                <div class="flex items-center justify-between px-6 py-3 text-sm">
+                    <span class="text-slate-400">Mitglieder gesamt</span>
+                    <span class="font-mono text-slate-100">{{ stats.member_count if stats else '—' }}</span>
+                </div>
+                <div class="flex items-center justify-between px-6 py-3 text-sm">
+                    <span class="text-slate-400">Text-Channels</span>
+                    <span class="font-mono text-slate-100">{{ stats.text_channel_count if stats else '—' }}</span>
+                </div>
+                <div class="flex items-center justify-between px-6 py-3 text-sm">
+                    <span class="text-slate-400">Voice-Channels</span>
+                    <span class="font-mono text-slate-100">{{ stats.voice_channel_count if stats else '—' }}</span>
+                </div>
+                <div class="flex items-center justify-between px-6 py-3 text-sm">
+                    <span class="text-slate-400">Rollen</span>
+                    <span class="font-mono text-slate-100">{{ roles | length if roles else '—' }}</span>
+                </div>
+            </div>
+            <p class="text-xs text-slate-600 px-6 pb-5 pt-1">
+                Live-Online-Anzahl benötigt den privilegierten Presence-Intent und ist aktuell nicht aktiviert.
+            </p>
         </div>
     </div>
 {% endblock %}

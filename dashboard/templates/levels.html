@@ -2,220 +2,186 @@
 {% block title %}User Levels{% endblock %}
 
 {% block page_content %}
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-10">
         <form method="post" action="{{ url_for('set_levels_settings', guild_id=guild.id) }}"
-              class="relative rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 space-y-4 overflow-hidden">
-            <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
-            <div class="relative space-y-4">
-                <div class="flex items-center gap-3 min-w-0">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-fuchsia-600 to-pink-600 flex items-center justify-center shrink-0 shadow-lg shadow-fuchsia-900/30">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm6 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0V5a2 2 0 012-2h0a2 2 0 012 2v14" />
-                        </svg>
-                    </div>
-                    <h2 class="font-semibold truncate">Level-System</h2>
-                </div>
+              class="rounded-lg border border-line bg-panel p-6 space-y-4">
+            <h2 class="font-medium">Level-System</h2>
 
-                <label class="flex items-center justify-between gap-3 text-sm bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2.5 cursor-pointer">
-                    <span class="text-slate-300">XP-Vergabe aktiv</span>
-                    <input type="checkbox" name="xp_enabled"
-                           {% if level_config.xp_enabled %}checked{% endif %}
-                           class="w-4 h-4 rounded border-slate-700 bg-[#0f172a] text-fuchsia-500 focus:ring-fuchsia-500">
-                </label>
+            <label class="flex items-center justify-between gap-3 text-sm bg-ink border border-line rounded px-3 py-2.5 cursor-pointer">
+                <span class="text-slate-300">XP-Vergabe aktiv</span>
+                <input type="checkbox" name="xp_enabled"
+                       {% if level_config.xp_enabled %}checked{% endif %}
+                       class="w-4 h-4 rounded border-line bg-ink text-signal focus:ring-signal">
+            </label>
 
-                <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-1" for="notify_mode">Level-Up-Benachrichtigung</label>
-                    <div class="relative">
-                        <select id="notify_mode" name="notify_mode"
-                                class="w-full appearance-none bg-[#0f172a] border border-slate-700 rounded-lg px-3 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500">
-                            <option value="chat" {% if level_config.notify_mode == 'chat' %}selected{% endif %}>Nur im Chat</option>
-                            <option value="dm" {% if level_config.notify_mode == 'dm' %}selected{% endif %}>Per DM</option>
-                            <option value="disabled" {% if level_config.notify_mode == 'disabled' %}selected{% endif %}>Deaktiviert</option>
-                        </select>
-                        <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </div>
-                </div>
-
-                <button type="submit"
-                        class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 transition-all text-white font-semibold py-2.5 rounded-lg">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+            <div>
+                <label class="block text-sm text-slate-400 mb-1" for="notify_mode">Level-Up-Benachrichtigung</label>
+                <div class="relative">
+                    <select id="notify_mode" name="notify_mode"
+                            class="w-full appearance-none bg-ink border border-line rounded px-3 pr-9 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-signal/60">
+                        <option value="chat" {% if level_config.notify_mode == 'chat' %}selected{% endif %}>Nur im Chat</option>
+                        <option value="dm" {% if level_config.notify_mode == 'dm' %}selected{% endif %}>Per DM</option>
+                        <option value="disabled" {% if level_config.notify_mode == 'disabled' %}selected{% endif %}>Deaktiviert</option>
+                    </select>
+                    <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                     </svg>
-                    Speichern
-                </button>
+                </div>
             </div>
+
+            <button type="submit"
+                    class="w-full inline-flex items-center justify-center gap-2 bg-signal hover:bg-signal/90 transition-colors text-ink font-medium py-2.5 rounded">
+                Speichern
+            </button>
         </form>
 
         <form method="post" action="{{ url_for('set_levels_excluded_channels', guild_id=guild.id) }}"
-              class="relative rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 space-y-4 overflow-hidden">
-            <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
-            <div class="relative space-y-4">
-                <h2 class="font-semibold">Ausgeschlossene Channels</h2>
-                <p class="text-sm text-slate-400">In diesen Channels wird keine XP vergeben.</p>
-                {% if channels %}
-                    <div class="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-1">
-                        {% for channel in channels %}
-                            <label class="flex items-center gap-2 text-sm bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 cursor-pointer hover:border-fuchsia-500/60 has-[:checked]:border-fuchsia-500 has-[:checked]:bg-fuchsia-500/10 transition-colors">
-                                <input type="checkbox" name="channel_ids" value="{{ channel.id }}"
-                                       {% if channel.id in level_config.excluded_channel_ids %}checked{% endif %}
-                                       class="rounded border-slate-700 bg-[#0f172a] text-fuchsia-500 focus:ring-fuchsia-500">
-                                <span class="truncate">#{{ channel.name }}</span>
-                            </label>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <p class="text-sm text-slate-500">Dieser Server hat keine Textchannels.</p>
-                {% endif %}
-                <button type="submit"
-                        class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 transition-all text-white font-semibold py-2.5 rounded-lg">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                    </svg>
-                    Speichern
-                </button>
-            </div>
+              class="rounded-lg border border-line bg-panel p-6 space-y-4">
+            <h2 class="font-medium">Ausgeschlossene Channels</h2>
+            <p class="text-sm text-slate-500">In diesen Channels wird keine XP vergeben.</p>
+            {% if channels %}
+                <div class="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-1">
+                    {% for channel in channels %}
+                        <label class="flex items-center gap-2 text-sm bg-ink border border-line rounded px-3 py-2 cursor-pointer hover:border-slate-600 has-[:checked]:border-signal has-[:checked]:bg-signal/10 transition-colors">
+                            <input type="checkbox" name="channel_ids" value="{{ channel.id }}"
+                                   {% if channel.id in level_config.excluded_channel_ids %}checked{% endif %}
+                                   class="rounded border-line bg-ink text-signal focus:ring-signal">
+                            <span class="truncate font-mono text-xs">#{{ channel.name }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-sm text-slate-500">Dieser Server hat keine Textchannels.</p>
+            {% endif %}
+            <button type="submit"
+                    class="w-full inline-flex items-center justify-center gap-2 bg-signal hover:bg-signal/90 transition-colors text-ink font-medium py-2.5 rounded">
+                Speichern
+            </button>
         </form>
 
         <form method="post" action="{{ url_for('set_levels_excluded_roles', guild_id=guild.id) }}"
-              class="relative rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 space-y-4 overflow-hidden">
-            <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
-            <div class="relative space-y-4">
-                <h2 class="font-semibold">Ausgeschlossene Rollen</h2>
-                <p class="text-sm text-slate-400">Mitglieder mit einer dieser Rollen erhalten keine XP.</p>
-                {% if roles %}
-                    <div class="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-1">
-                        {% for role in roles %}
-                            <label class="flex items-center gap-2 text-sm bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 cursor-pointer hover:border-fuchsia-500/60 has-[:checked]:border-fuchsia-500 has-[:checked]:bg-fuchsia-500/10 transition-colors">
-                                <input type="checkbox" name="role_ids" value="{{ role.id }}"
-                                       {% if role.id in level_config.excluded_role_ids %}checked{% endif %}
-                                       class="rounded border-slate-700 bg-[#0f172a] text-fuchsia-500 focus:ring-fuchsia-500">
-                                <span class="truncate">{{ role.name }}</span>
-                            </label>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <p class="text-sm text-slate-500">Dieser Server hat keine zuweisbaren Rollen.</p>
-                {% endif %}
-                <button type="submit"
-                        class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 transition-all text-white font-semibold py-2.5 rounded-lg">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                    </svg>
-                    Speichern
-                </button>
-            </div>
+              class="rounded-lg border border-line bg-panel p-6 space-y-4">
+            <h2 class="font-medium">Ausgeschlossene Rollen</h2>
+            <p class="text-sm text-slate-500">Mitglieder mit einer dieser Rollen erhalten keine XP.</p>
+            {% if roles %}
+                <div class="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-1">
+                    {% for role in roles %}
+                        <label class="flex items-center gap-2 text-sm bg-ink border border-line rounded px-3 py-2 cursor-pointer hover:border-slate-600 has-[:checked]:border-signal has-[:checked]:bg-signal/10 transition-colors">
+                            <input type="checkbox" name="role_ids" value="{{ role.id }}"
+                                   {% if role.id in level_config.excluded_role_ids %}checked{% endif %}
+                                   class="rounded border-line bg-ink text-signal focus:ring-signal">
+                            <span class="truncate">{{ role.name }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-sm text-slate-500">Dieser Server hat keine zuweisbaren Rollen.</p>
+            {% endif %}
+            <button type="submit"
+                    class="w-full inline-flex items-center justify-center gap-2 bg-signal hover:bg-signal/90 transition-colors text-ink font-medium py-2.5 rounded">
+                Speichern
+            </button>
         </form>
     </div>
 
-    <div class="relative rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 overflow-hidden mb-10">
-        <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
-        <div class="relative">
-            <h2 class="font-semibold mb-1">Level-Belohnungen (Rollen)</h2>
-            <p class="text-sm text-slate-400 mb-4">
-                Ab dem erreichten Level wird automatisch die zugewiesene Rolle vergeben. Es bleibt immer nur die
-                aktuell höchste erreichte Stufe aktiv — niedrigere Level-Rollen werden beim Aufstieg automatisch
-                wieder entfernt.
-            </p>
+    <div class="rounded-lg border border-line bg-panel p-6 mb-10">
+        <h2 class="font-medium mb-1">Level-Belohnungen (Rollen)</h2>
+        <p class="text-sm text-slate-500 mb-4">
+            Ab dem erreichten Level wird automatisch die zugewiesene Rolle vergeben. Es bleibt immer nur die
+            aktuell höchste erreichte Stufe aktiv — niedrigere Level-Rollen werden beim Aufstieg automatisch
+            wieder entfernt.
+        </p>
 
-            <form method="post" action="{{ url_for('set_level_reward', guild_id=guild.id) }}"
-                  class="flex flex-wrap items-end gap-3 mb-5">
-                <div>
-                    <label class="block text-xs font-medium text-slate-400 mb-1" for="reward_level">Level</label>
-                    <input type="number" id="reward_level" name="level" min="1" required placeholder="z. B. 20"
-                           class="w-28 bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500">
-                </div>
-                <div class="min-w-0">
-                    <label class="block text-xs font-medium text-slate-400 mb-1" for="reward_role_id">Rolle</label>
-                    <div class="relative">
-                        <select id="reward_role_id" name="role_id" required
-                                class="w-56 appearance-none bg-[#0f172a] border border-slate-700 rounded-lg px-3 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500">
-                            <option value="" disabled selected>— Rolle wählen —</option>
-                            {% for role in roles %}
-                                <option value="{{ role.id }}">{{ role.name }}</option>
-                            {% endfor %}
-                        </select>
-                        <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </div>
-                </div>
-                <button type="submit"
-                        class="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 transition-all text-white font-semibold py-2.5 px-5 rounded-lg">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+        <form method="post" action="{{ url_for('set_level_reward', guild_id=guild.id) }}"
+              class="flex flex-wrap items-end gap-3 mb-5">
+            <div>
+                <label class="block text-xs text-slate-500 mb-1" for="reward_level">Level</label>
+                <input type="number" id="reward_level" name="level" min="1" required placeholder="z. B. 20"
+                       class="w-28 bg-ink border border-line rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-signal/60">
+            </div>
+            <div class="min-w-0">
+                <label class="block text-xs text-slate-500 mb-1" for="reward_role_id">Rolle</label>
+                <div class="relative">
+                    <select id="reward_role_id" name="role_id" required
+                            class="w-56 appearance-none bg-ink border border-line rounded px-3 pr-9 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-signal/60">
+                        <option value="" disabled selected>— Rolle wählen —</option>
+                        {% for role in roles %}
+                            <option value="{{ role.id }}">{{ role.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                     </svg>
-                    Hinzufügen
-                </button>
-            </form>
-
-            {% if rewards %}
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="text-left text-slate-500 border-b border-white/10">
-                                <th class="py-2 pr-4 font-medium">Level</th>
-                                <th class="py-2 pr-4 font-medium">Rolle</th>
-                                <th class="py-2 pr-4 font-medium"></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for reward in rewards %}
-                                <tr class="border-b border-white/10/60">
-                                    <td class="py-2.5 pr-4 text-slate-300">{{ reward.level }}</td>
-                                    <td class="py-2.5 pr-4">{{ reward.role_name or "Unbekannte Rolle (gelöscht?)" }}</td>
-                                    <td class="py-2.5 pr-0 text-right">
-                                        <form method="post" action="{{ url_for('delete_level_reward', guild_id=guild.id, level=reward.level) }}">
-                                            <button type="submit"
-                                                    class="text-red-400 hover:text-red-300 text-xs font-medium transition-colors">
-                                                Löschen
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
                 </div>
-            {% else %}
-                <p class="text-sm text-slate-500">Es sind noch keine Level-Belohnungen konfiguriert.</p>
-            {% endif %}
-        </div>
+            </div>
+            <button type="submit"
+                    class="inline-flex items-center justify-center gap-2 bg-signal hover:bg-signal/90 transition-colors text-ink font-medium py-2.5 px-5 rounded">
+                Hinzufügen
+            </button>
+        </form>
+
+        {% if rewards %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left text-slate-600 border-b border-line">
+                            <th class="py-2 pr-4 font-medium">Level</th>
+                            <th class="py-2 pr-4 font-medium">Rolle</th>
+                            <th class="py-2 pr-4 font-medium"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for reward in rewards %}
+                            <tr class="border-b border-line">
+                                <td class="py-2.5 pr-4 font-mono text-slate-300">{{ reward.level }}</td>
+                                <td class="py-2.5 pr-4">{{ reward.role_name or "Unbekannte Rolle (gelöscht?)" }}</td>
+                                <td class="py-2.5 pr-0 text-right">
+                                    <form method="post" action="{{ url_for('delete_level_reward', guild_id=guild.id, level=reward.level) }}">
+                                        <button type="submit"
+                                                class="text-red-400 hover:text-red-300 text-xs font-medium transition-colors">
+                                            Löschen
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-sm text-slate-500">Es sind noch keine Level-Belohnungen konfiguriert.</p>
+        {% endif %}
     </div>
 
-    <div class="relative rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 overflow-hidden">
-        <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
-        <div class="relative">
-            <h2 class="font-semibold mb-1">Leaderboard</h2>
-            <p class="text-sm text-slate-400 mb-4">Alle Mitglieder dieses Servers, sortiert nach XP.</p>
+    <div class="rounded-lg border border-line bg-panel p-6">
+        <h2 class="font-medium mb-1">Leaderboard</h2>
+        <p class="text-sm text-slate-500 mb-4">Alle Mitglieder dieses Servers, sortiert nach XP.</p>
 
-            {% if leaderboard %}
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="text-left text-slate-500 border-b border-white/10">
-                                <th class="py-2 pr-4 font-medium">#</th>
-                                <th class="py-2 pr-4 font-medium">Mitglied</th>
-                                <th class="py-2 pr-4 font-medium">Level</th>
-                                <th class="py-2 pr-4 font-medium">XP</th>
+        {% if leaderboard %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left text-slate-600 border-b border-line">
+                            <th class="py-2 pr-4 font-medium">#</th>
+                            <th class="py-2 pr-4 font-medium">Mitglied</th>
+                            <th class="py-2 pr-4 font-medium">Level</th>
+                            <th class="py-2 pr-4 font-medium">XP</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in leaderboard %}
+                            <tr class="border-b border-line">
+                                <td class="py-2.5 pr-4 text-slate-500 font-mono">{{ loop.index }}</td>
+                                <td class="py-2.5 pr-4">{{ entry.display }}</td>
+                                <td class="py-2.5 pr-4 text-slate-300 font-mono">{{ entry.level }}</td>
+                                <td class="py-2.5 pr-4 text-slate-500 font-mono">{{ entry.xp }}</td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {% for entry in leaderboard %}
-                                <tr class="border-b border-white/10/60">
-                                    <td class="py-2.5 pr-4 text-slate-400">{{ loop.index }}</td>
-                                    <td class="py-2.5 pr-4">{{ entry.display }}</td>
-                                    <td class="py-2.5 pr-4 text-slate-300">{{ entry.level }}</td>
-                                    <td class="py-2.5 pr-4 text-slate-400">{{ entry.xp }}</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            {% else %}
-                <p class="text-sm text-slate-500">Es gibt noch keine XP-Einträge auf diesem Server.</p>
-            {% endif %}
-        </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-sm text-slate-500">Es gibt noch keine XP-Einträge auf diesem Server.</p>
+        {% endif %}
     </div>
 {% endblock %}

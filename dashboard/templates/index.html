@@ -4,23 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bot Dashboard – Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        ink: '#0D0E12',
+                        panel: '#16171C',
+                        panel2: '#1D1F26',
+                        line: '#272A33',
+                        signal: '#F2B705',
+                    },
+                    fontFamily: {
+                        sans: ['"Space Grotesk"', 'ui-sans-serif', 'sans-serif'],
+                        mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
+                    },
+                },
+            },
+        };
+    </script>
 </head>
-<body class="bg-[#0b0f1a] text-slate-100 min-h-screen flex items-center justify-center">
-    <div class="fixed inset-0 pointer-events-none bg-[radial-gradient(ellipse_900px_500px_at_50%_-10%,rgba(139,92,246,0.15),transparent)]"></div>
-    <div class="relative rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl shadow-xl p-10 text-center max-w-sm w-full overflow-hidden">
-        <div class="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
-        <div class="relative">
-            <div class="w-16 h-16 mx-auto mb-6 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-2xl font-bold">
-                B
-            </div>
-            <h1 class="text-2xl font-bold mb-2">Bot Dashboard</h1>
-            <p class="text-slate-400 mb-8">Melde dich mit Discord an, um deine Server zu verwalten.</p>
-            <a href="{{ url_for('login') }}"
-               class="inline-flex items-center justify-center gap-2 w-full bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 transition-all text-white font-semibold py-3 rounded-xl">
-                Mit Discord einloggen
-            </a>
+<body class="bg-ink text-slate-200 font-sans antialiased min-h-screen flex items-center justify-center">
+    <div class="rounded-lg border border-line bg-panel p-10 text-center max-w-sm w-full">
+        <div class="w-12 h-12 mx-auto mb-6 rounded-md bg-panel2 border border-line flex items-center justify-center font-mono text-xl text-signal">
+            B
         </div>
+        <h1 class="text-xl font-semibold mb-2">Bot Dashboard</h1>
+        <p class="text-slate-500 mb-8">Melde dich mit Discord an, um deine Server zu verwalten.</p>
+        <a href="{{ url_for('login') }}"
+           class="inline-flex items-center justify-center gap-2 w-full bg-signal hover:bg-signal/90 transition-colors text-ink font-medium py-2.5 rounded">
+            Mit Discord einloggen
+        </a>
     </div>
 </body>
 </html>
