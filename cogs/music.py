@@ -100,6 +100,21 @@ class Music(commands.Cog):
     def _get_player(interaction: discord.Interaction) -> MusicPlayer | None:
         return interaction.guild.voice_client if isinstance(interaction.guild.voice_client, MusicPlayer) else None
 
+    @staticmethod
+    async def _search_track(query: str) -> wavelink.Search:
+        """Sucht einen Song/Link. Bei reinen Songnamen liefert YouTube Music (Standard-Quelle)
+        nicht immer einen Treffer - in dem Fall wird zusätzlich mit der regulären
+        YouTube-Suche nachgesucht, bevor aufgegeben wird."""
+        try:
+            result = await wavelink.Playable.search(query)
+        except wavelink.LavalinkLoadException:
+            result = None
+
+        if not result:
+            result = await wavelink.Playable.search(query, source=wavelink.TrackSource.YouTube)
+
+        return result
+
     @app_commands.command(
         name="play",
         description="Spielt einen Song oder eine Playlist ab (YouTube, Spotify, Apple Music, SoundCloud).",
@@ -144,7 +159,7 @@ class Music(commands.Cog):
         player.text_channel = interaction.channel
 
         try:
-            result = await wavelink.Playable.search(query)
+            result = await self._search_track(query)
         except wavelink.LavalinkLoadException:
             await interaction.followup.send("Dieser Link konnte nicht geladen werden.", ephemeral=True)
             return
