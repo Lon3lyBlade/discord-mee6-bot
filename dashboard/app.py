@@ -113,8 +113,50 @@ def callback():
     return redirect(url_for("dashboard"))
 
 
+class DiscordAuthError(Exception):
+    """Discord lehnt das gespeicherte OAuth-Token ab (z. B. abgelaufen oder widerrufen)."""
+
+
+class DiscordAPIError(Exception):
+    """Discord ist fehlgeschlagen oder rate-limitiert, aber der Login ist nicht das Problem."""
+
+    def __init__(self, status_code: int):
+        super().__init__(f"Discord API antwortete mit {status_code}")
+        self.status_code = status_code
+
+
+def discord_get_json(discord_session, path: str):
+    """GET gegen die Discord-API, die bei Fehlern eine Exception statt einer Fehler-Payload liefert.
+
+    Ohne diese Prüfung würde z. B. ein 401/429-JSON ({"message": ...}) als Liste von Servern
+    interpretiert und die Seite mit einem 500er abbrechen.
+    """
+    response = discord_session.get(f"{API_BASE_URL}{path}")
+    if response.status_code == 401:
+        raise DiscordAuthError()
+    if not response.ok:
+        raise DiscordAPIError(response.status_code)
+    return response.json()
+
+
+@app.errorhandler(DiscordAuthError)
+def handle_discord_auth_error(_error):
+    session.clear()
+    return redirect(url_for("index"))
+
+
+@app.errorhandler(DiscordAPIError)
+def handle_discord_api_error(error):
+    return (
+        "Discord ist gerade nicht erreichbar oder hat die Anfrage gedrosselt "
+        f"(Status {error.status_code}). Bitte in einer Minute neu laden.",
+        503,
+        {"Content-Type": "text/plain; charset=utf-8"},
+    )
+
+
 def get_admin_guilds(discord_session) -> list[dict]:
-    guilds = discord_session.get(f"{API_BASE_URL}/users/@me/guilds").json()
+    guilds = discord_get_json(discord_session, "/users/@me/guilds")
     return [guild for guild in guilds if is_admin_guild(guild)]
 
 
@@ -129,7 +171,7 @@ def get_admin_guild_or_none(discord_session, guild_id: str) -> dict | None:
 @login_required
 def dashboard():
     discord_session = make_discord_session(token=session["oauth_token"])
-    user = discord_session.get(f"{API_BASE_URL}/users/@me").json()
+    user = discord_get_json(discord_session, "/users/@me")
     admin_guilds = get_admin_guilds(discord_session)
 
     return render_template("dashboard.html", user=user, guilds=admin_guilds)
@@ -197,7 +239,7 @@ def resolve_guild_or_response(guild_id: str, template: str):
     Flask-Response (bei fehlenden Adminrechten) zurück.
     """
     discord_session = make_discord_session(token=session["oauth_token"])
-    user = discord_session.get(f"{API_BASE_URL}/users/@me").json()
+    user = discord_get_json(discord_session, "/users/@me")
     admin_guilds = get_admin_guilds(discord_session)
     guild = next((g for g in admin_guilds if g["id"] == guild_id), None)
     if guild is None:
