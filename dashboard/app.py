@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 import requests
 from dotenv import load_dotenv
 from flask import Flask, redirect, render_template, request, session, url_for
+from oauthlib.oauth2 import TokenExpiredError
 from requests_oauthlib import OAuth2Session
 from werkzeug.exceptions import RequestEntityTooLarge
 
@@ -131,7 +132,12 @@ def discord_get_json(discord_session, path: str):
     Ohne diese Prüfung würde z. B. ein 401/429-JSON ({"message": ...}) als Liste von Servern
     interpretiert und die Seite mit einem 500er abbrechen.
     """
-    response = discord_session.get(f"{API_BASE_URL}{path}")
+    try:
+        response = discord_session.get(f"{API_BASE_URL}{path}")
+    except TokenExpiredError:
+        # oauthlib prüft expires_at selbst und wirft schon vor dem Request, ohne dass
+        # Discord überhaupt eine 401-Antwort schickt.
+        raise DiscordAuthError() from None
     if response.status_code == 401:
         raise DiscordAuthError()
     if not response.ok:
