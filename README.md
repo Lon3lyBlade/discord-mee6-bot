@@ -54,7 +54,7 @@ Discord-host/
 │   ├── events.py                  # Event-/Kalendersystem mit RSVP-Buttons
 │   ├── music.py                   # Musik-Slash-Commands (Wavelink + Lavalink)
 │   ├── leveling.py                 # XP-/Level-System (/rank, /leaderboard)
-│   ├── blackjack.py                # Blackjack gegen den Bot (/blackjack)
+│   ├── blackjack.py                # Blackjack mit Coin-Einsatz (/blackjack, /balance, /coins-leaderboard)
 │   └── internal_api.py            # Interne aiohttp-API für Bot<->Dashboard-Kommunikation
 ├── database/
 │   └── db.py                      # Gemeinsame SQLite-DB (aiosqlite)

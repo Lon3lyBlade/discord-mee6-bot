@@ -4,6 +4,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from database import db
+
 SUITS = ["♠️", "♥️", "♦️", "♣️"]
 RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
 
@@ -38,9 +40,11 @@ def fmt(hand: list[tuple[str, str]], hide_second: bool = False) -> str:
 
 
 class BlackjackView(discord.ui.View):
-    def __init__(self, player: discord.abc.User) -> None:
+    def __init__(self, player: discord.abc.User, guild_id: int, bet: int) -> None:
         super().__init__(timeout=120)
         self.player = player
+        self.guild_id = guild_id
+        self.bet = bet
         self.deck = new_deck()
         self.hand = [self.deck.pop(), self.deck.pop()]
         self.dealer = [self.deck.pop(), self.deck.pop()]
@@ -73,22 +77,34 @@ class BlackjackView(discord.ui.View):
         )
         if result:
             embed.description = f"**{result}**"
+        embed.add_field(name="Einsatz", value=f"{self.bet} 🪙", inline=True)
         embed.set_footer(text=f"Spieler: {self.player.display_name}")
         return embed
 
-    def settle(self) -> str:
+    def settle(self) -> tuple[str, int]:
+        """Gibt (Text, Auszahlung) zurück. Der Einsatz wurde schon abgebucht, die Auszahlung enthält ihn."""
         p, d = hand_value(self.hand), hand_value(self.dealer)
         if p > 21:
-            return "💥 Überkauft – du verlierst."
+            return f"💥 Überkauft – du verlierst {self.bet} 🪙.", 0
         if self.is_blackjack(self.hand) and not self.is_blackjack(self.dealer):
-            return "🎉 Blackjack! Du gewinnst."
+            payout = self.bet * 5 // 2
+            return f"🎉 Blackjack! Du gewinnst {payout - self.bet} 🪙.", payout
         if d > 21:
-            return "🎉 Dealer überkauft – du gewinnst!"
+            return f"🎉 Dealer überkauft – du gewinnst {self.bet} 🪙!", self.bet * 2
         if p > d:
-            return "🎉 Du gewinnst!"
+            return f"🎉 Du gewinnst {self.bet} 🪙!", self.bet * 2
         if p < d:
-            return "😢 Der Dealer gewinnt."
-        return "🤝 Unentschieden (Push)."
+            return f"😢 Der Dealer gewinnt – du verlierst {self.bet} 🪙.", 0
+        return "🤝 Unentschieden (Push) – Einsatz zurück.", self.bet
+
+    async def settle_and_pay(self) -> tuple[str, int]:
+        text, payout = self.settle()
+        balance = None
+        if payout:
+            balance = await db.change_balance(self.guild_id, self.player.id, payout)
+        if balance is None:
+            balance = (await db.get_balance(self.guild_id, self.player.id))["balance"]
+        return text, balance
 
     async def finish(self, interaction: discord.Interaction, dealer_plays: bool = True) -> None:
         self.finished = True
@@ -98,7 +114,10 @@ class BlackjackView(discord.ui.View):
         for child in self.children:
             child.disabled = True
         self.stop()
-        await interaction.response.edit_message(embed=self.build_embed(self.settle()), view=self)
+        text, balance = await self.settle_and_pay()
+        embed = self.build_embed(text)
+        embed.set_footer(text=f"Spieler: {self.player.display_name} • Guthaben: {balance} 🪙")
+        await interaction.response.edit_message(embed=embed, view=self)
 
     # --- Buttons ----------------------------------------------------------
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
@@ -125,7 +144,13 @@ class BlackjackView(discord.ui.View):
 
     @discord.ui.button(label="Double", style=discord.ButtonStyle.secondary, emoji="2️⃣")
     async def double(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
-        # Eine Karte ziehen, dann automatisch Stand.
+        # Einsatz verdoppeln, eine Karte ziehen, dann automatisch Stand.
+        if await db.change_balance(self.guild_id, self.player.id, -self.bet) is None:
+            await interaction.response.send_message(
+                "Dein Guthaben reicht zum Verdoppeln nicht aus.", ephemeral=True
+            )
+            return
+        self.bet *= 2
         self.hand.append(self.deck.pop())
         await self.finish(interaction)
 
@@ -135,7 +160,7 @@ class BlackjackView(discord.ui.View):
         for child in self.children:
             child.disabled = True
         embed = self.build_embed()
-        embed.description = "⏰ Zeit abgelaufen – Partie beendet."
+        embed.description = f"⏰ Zeit abgelaufen – dein Einsatz von {self.bet} 🪙 ist verfallen."
         try:
             await self.message.edit(embed=embed, view=self)
         except discord.HTTPException:
@@ -147,16 +172,61 @@ class Blackjack(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="blackjack", description="Spiele eine Runde Blackjack gegen den Bot.")
-    async def blackjack(self, interaction: discord.Interaction) -> None:
-        view = BlackjackView(interaction.user)
+    @app_commands.describe(einsatz="Wie viele Coins du setzen möchtest (Standard: 100).")
+    @app_commands.guild_only()
+    async def blackjack(
+        self, interaction: discord.Interaction, einsatz: app_commands.Range[int, 1, 1_000_000] = 100
+    ) -> None:
+        # Einsatz sofort abbuchen, damit man nicht parallel mehrere Partien mit demselben Guthaben spielt.
+        if await db.change_balance(interaction.guild_id, interaction.user.id, -einsatz) is None:
+            info = await db.get_balance(interaction.guild_id, interaction.user.id)
+            await interaction.response.send_message(
+                f"Dein Guthaben ({info['balance']} 🪙) reicht für {einsatz} 🪙 nicht aus. "
+                f"Nächste Auffüllung auf 1000 🪙 (falls du darunter bist): <t:{info['next_refill']}:R>.",
+                ephemeral=True,
+            )
+            return
+
+        view = BlackjackView(interaction.user, interaction.guild_id, einsatz)
         if view.is_blackjack(view.hand) or view.is_blackjack(view.dealer):
             view.finished = True
             for child in view.children:
                 child.disabled = True
-            await interaction.response.send_message(embed=view.build_embed(view.settle()), view=view)
+            text, balance = await view.settle_and_pay()
+            embed = view.build_embed(text)
+            embed.set_footer(text=f"Spieler: {interaction.user.display_name} • Guthaben: {balance} 🪙")
+            await interaction.response.send_message(embed=embed, view=view)
             return
         await interaction.response.send_message(embed=view.build_embed(), view=view)
         view.message = await interaction.original_response()
+
+    @app_commands.command(name="balance", description="Zeigt dein Coin-Guthaben an.")
+    @app_commands.describe(user="Das Mitglied (Standard: du selbst).")
+    @app_commands.guild_only()
+    async def balance(self, interaction: discord.Interaction, user: discord.Member | None = None) -> None:
+        member = user or interaction.user
+        info = await db.get_balance(interaction.guild_id, member.id)
+        text = f"**{member.display_name}** hat **{info['balance']} 🪙**."
+        if info["balance"] < db.WEEKLY_MIN_BALANCE:
+            text += f"\nAuffüllung auf {db.WEEKLY_MIN_BALANCE} 🪙: <t:{info['next_refill']}:R>"
+        await interaction.response.send_message(text)
+
+    @app_commands.command(name="coins-leaderboard", description="Die reichsten Spieler dieses Servers.")
+    @app_commands.guild_only()
+    async def coins_leaderboard(self, interaction: discord.Interaction) -> None:
+        entries = await db.get_balance_leaderboard(interaction.guild_id, limit=10)
+        if not entries:
+            await interaction.response.send_message("Noch niemand hat Coins.", ephemeral=True)
+            return
+        medals = {0: "🥇", 1: "🥈", 2: "🥉"}
+        lines = []
+        for i, e in enumerate(entries):
+            m = interaction.guild.get_member(e["user_id"])
+            name = m.display_name if m else f"Unbekannt ({e['user_id']})"
+            lines.append(f"{medals.get(i, f'**#{i + 1}**')} {name} — {e['balance']} 🪙")
+        await interaction.response.send_message(
+            embed=discord.Embed(title="🪙 Coins-Rangliste", description="\n".join(lines), color=discord.Color.gold())
+        )
 
 
 async def setup(bot: commands.Bot) -> None:

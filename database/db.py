@@ -1,4 +1,5 @@
 import os
+import time
 
 import aiosqlite
 
@@ -573,3 +574,89 @@ async def get_level_rewards(guild_id: int) -> list[dict]:
             (guild_id,),
         ) as cursor:
             return [{"level": row[0], "role_id": row[1]} async for row in cursor]
+
+
+# --- Währung (Coins) ---------------------------------------------------------
+WEEKLY_MIN_BALANCE = 1000
+REFILL_INTERVAL_SECONDS = 7 * 24 * 60 * 60
+
+
+async def _ensure_balance_table(db: aiosqlite.Connection) -> None:
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS user_balance (
+            guild_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            balance INTEGER NOT NULL,
+            last_refill INTEGER NOT NULL,
+            PRIMARY KEY (guild_id, user_id)
+        )
+        """
+    )
+
+
+async def _get_balance_row(db: aiosqlite.Connection, guild_id: int, user_id: int, now: int) -> tuple[int, int]:
+    """Liefert (balance, last_refill) und wendet dabei die wöchentliche Auffüllung an.
+
+    Neue Spieler starten mit 1000. Ist die letzte Auffüllung mindestens 7 Tage her,
+    werden Spieler mit weniger als 1000 auf 1000 aufgefüllt (wer mehr hat, behält sein Guthaben).
+    """
+    await _ensure_balance_table(db)
+    async with db.execute(
+        "SELECT balance, last_refill FROM user_balance WHERE guild_id = ? AND user_id = ?",
+        (guild_id, user_id),
+    ) as cursor:
+        row = await cursor.fetchone()
+
+    if row is None:
+        await db.execute(
+            "INSERT INTO user_balance (guild_id, user_id, balance, last_refill) VALUES (?, ?, ?, ?)",
+            (guild_id, user_id, WEEKLY_MIN_BALANCE, now),
+        )
+        return WEEKLY_MIN_BALANCE, now
+
+    balance, last_refill = row
+    if now - last_refill >= REFILL_INTERVAL_SECONDS:
+        balance = max(balance, WEEKLY_MIN_BALANCE)
+        last_refill = now
+        await db.execute(
+            "UPDATE user_balance SET balance = ?, last_refill = ? WHERE guild_id = ? AND user_id = ?",
+            (balance, last_refill, guild_id, user_id),
+        )
+    return balance, last_refill
+
+
+async def get_balance(guild_id: int, user_id: int) -> dict:
+    now = int(time.time())
+    async with aiosqlite.connect(DB_PATH) as db:
+        balance, last_refill = await _get_balance_row(db, guild_id, user_id, now)
+        await db.commit()
+    return {"balance": balance, "next_refill": last_refill + REFILL_INTERVAL_SECONDS}
+
+
+async def change_balance(guild_id: int, user_id: int, delta: int) -> int | None:
+    """Ändert das Guthaben um delta. Gibt das neue Guthaben zurück oder None, wenn es nicht reichen würde."""
+    now = int(time.time())
+    async with aiosqlite.connect(DB_PATH) as db:
+        balance, _ = await _get_balance_row(db, guild_id, user_id, now)
+        new_balance = balance + delta
+        if new_balance < 0:
+            await db.commit()
+            return None
+        await db.execute(
+            "UPDATE user_balance SET balance = ? WHERE guild_id = ? AND user_id = ?",
+            (new_balance, guild_id, user_id),
+        )
+        await db.commit()
+    return new_balance
+
+
+async def get_balance_leaderboard(guild_id: int, limit: int = 10) -> list[dict]:
+    async with aiosqlite.connect(DB_PATH) as db:
+        await _ensure_balance_table(db)
+        async with db.execute(
+            "SELECT user_id, balance FROM user_balance WHERE guild_id = ? ORDER BY balance DESC LIMIT ?",
+            (guild_id, limit),
+        ) as cursor:
+            rows = await cursor.fetchall()
+    return [{"user_id": r[0], "balance": r[1]} for r in rows]
