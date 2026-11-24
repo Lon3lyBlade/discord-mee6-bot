@@ -4,9 +4,11 @@ name: Docker-Image bauen und veröffentlichen
 # Registry (ghcr.io) hoch. Unraid erkennt darüber automatisch, wenn eine neuere Version
 # verfügbar ist ("Update Ready"-Button im Docker-Tab), ohne dass das Image lokal auf
 # Unraid gebaut werden muss.
+#
+# DEAKTIVIERT: läuft nur noch manuell (workflow_dispatch). Der Push-Trigger ist aus, weil
+# Actions/Packages bei GitHub kostenpflichtig werden können. Standardweg ist jetzt `deploy.sh`,
+# das das Image direkt auf Unraid baut. Zum Reaktivieren `push: branches: [master]` ergänzen.
 on:
-  push:
-    branches: [master]
   workflow_dispatch:
 
 env:

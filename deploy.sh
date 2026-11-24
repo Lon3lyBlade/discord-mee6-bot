@@ -1,84 +1,94 @@
 #!/usr/bin/env bash
-# Aktualisiert den Discord-Bot (Bot + Flask-Dashboard) auf dem Unraid-Server "Tower".
+# Aktualisiert den Bot auf dem Unraid-Server, komplett kostenlos und ohne GitHub Actions/ghcr.io.
 # Ausführen auf dem Laptop (im LAN) im Projektordner:  bash deploy.sh
 #
-# Das Image wird nicht mehr auf Unraid gebaut. Stattdessen baut GitHub Actions bei
-# jedem Push auf master automatisch ein Docker-Image und lädt es in die GitHub
-# Container Registry (ghcr.io) hoch (siehe .github/workflows/docker-publish.yml).
-# Unraids Docker-Tab erkennt darüber von sich aus, wenn eine neue Version bereitsteht
-# ("Update Ready"-Button) - dieses Skript holt das neueste Image zusätzlich sofort,
-# falls du nicht auf Unraids automatischen Check warten willst.
+# Ablauf:
+#   1. Der Projektordner wird per SSH nach Unraid kopiert (ohne .git und .env).
+#   2. Das Image wird direkt auf Unraid gebaut und bekommt denselben Namen wie bisher.
+#   3. Der laufende Container wird mit SEINER bestehenden Konfiguration (Variablen, Ports,
+#      Volumes, Labels, Restart-Policy) neu erstellt. Secrets aus dem Unraid-Template und
+#      die Daten unter /app/data (Datenbank, Coins) bleiben dadurch erhalten.
+#   4. Startet der neue Container nicht, wird automatisch der alte wiederhergestellt.
 #
-# Einmalige Einrichtung (das GitHub-Package ist privat, Unraid braucht also einen
-# eigenen Zugang zur Registry):
-#   1. Auf https://github.com/settings/tokens ein "Personal access token (classic)"
-#      mit Scope "read:packages" erstellen.
-#   2. Auf Unraid per SSH einmalig einloggen:
-#        docker login ghcr.io -u Lon3lyBlade
-#      (Token als Passwort einfügen, wenn danach gefragt wird - NICHT in die Kommandozeile
-#      schreiben, damit es nicht in der Shell-History/Prozessliste landet.)
-# Voraussetzung: SSH auf Unraid aktiv, lokale .env ausgefüllt (Kopie von .env.example).
+# Voraussetzung: SSH auf Unraid aktiv und der Container existiert bereits (z.B. über
+# "Add Container" angelegt). Eine lokale .env ist NICHT nötig.
+#
+# Anpassbar per Umgebungsvariable, z.B.:  CONTAINER=meinbot UNRAID_HOST=192.168.x.x bash deploy.sh
 set -euo pipefail
 
-# "tower.local" ist Unraids eigener mDNS-Standardname; per UNRAID_HOST überschreibbar,
-# falls der Server anders heißt oder mDNS im eigenen LAN nicht funktioniert (dann die
-# tatsächliche LAN-IP setzen, z.B. UNRAID_HOST=192.168.x.x bash deploy.sh).
 UNRAID_HOST="${UNRAID_HOST:-tower.local}"
 UNRAID_USER="${UNRAID_USER:-root}"
-REMOTE_DIR="${REMOTE_DIR:-/mnt/user/appdata/discord-bot-dashboard}"
 CONTAINER="${CONTAINER:-discord-bot-dashboard}"
 IMAGE="${IMAGE:-ghcr.io/lon3lyblade/discord-mee6-bot:latest}"
-HOST_PORT="${HOST_PORT:-5001}"
+BUILD_DIR="${BUILD_DIR:-/mnt/user/appdata/discord-bot-build}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SSH="ssh ${UNRAID_USER}@${UNRAID_HOST}"
+SSH=(ssh "${UNRAID_USER}@${UNRAID_HOST}")
 
-if [[ ! -f "$SCRIPT_DIR/.env" ]]; then
-  echo "FEHLER: $SCRIPT_DIR/.env fehlt."
-  echo "Kopiere .env.example nach .env und trage Token, Client-ID/-Secret und zufällige Secrets ein."
-  echo "DISCORD_REDIRECT_URI sollte http://${UNRAID_HOST}:${HOST_PORT}/callback sein."
-  exit 1
-fi
-if grep -qE 'dein-bot-token-hier|dein-client-secret|bitte-durch-einen-zufaelligen-wert-ersetzen|deine-client-id' "$SCRIPT_DIR/.env"; then
-  echo "FEHLER: .env enthält noch Platzhalter aus .env.example. Bitte alle Werte ausfüllen."
-  exit 1
-fi
-
-echo "==> Prüfe Verbindung und Port ${HOST_PORT} auf ${UNRAID_HOST} ..."
-$SSH "docker info >/dev/null" || { echo "FEHLER: SSH/Docker auf Unraid nicht erreichbar."; exit 1; }
-BLOCKER="$($SSH "docker ps --format '{{.Names}} {{.Ports}}'" | grep -E "[:>]${HOST_PORT}->" | grep -v "^${CONTAINER} " || true)"
-if [[ -n "$BLOCKER" ]]; then
-  echo "FEHLER: Port ${HOST_PORT} wird bereits von einem anderen Container belegt:"
-  echo "  $BLOCKER"
-  echo "Stoppe ihn oder starte mit einem anderen Port, z.B.:  HOST_PORT=5001 bash deploy.sh"
-  exit 1
-fi
-
-echo "==> Kopiere lokale .env nach Unraid ..."
-$SSH "mkdir -p '${REMOTE_DIR}/data'"
-scp "$SCRIPT_DIR/.env" "${UNRAID_USER}@${UNRAID_HOST}:${REMOTE_DIR}/.env"
-$SSH "chmod 600 '${REMOTE_DIR}/.env'"
-
-echo "==> Hole neuestes Image von der GitHub Container Registry ..."
-$SSH "docker pull '${IMAGE}'" || {
-  echo "FEHLER: 'docker pull' fehlgeschlagen. Falls das Package privat ist, einmalig auf"
-  echo "Unraid einloggen:  docker login ghcr.io -u Lon3lyBlade"
+echo "==> Prüfe Verbindung zu ${UNRAID_HOST} ..."
+"${SSH[@]}" "docker info >/dev/null" || { echo "FEHLER: SSH/Docker auf Unraid nicht erreichbar."; exit 1; }
+"${SSH[@]}" "docker inspect '${CONTAINER}' >/dev/null 2>&1" || {
+  echo "FEHLER: Container '${CONTAINER}' existiert auf Unraid nicht."
+  echo "Name prüfen mit:  ssh ${UNRAID_USER}@${UNRAID_HOST} docker ps -a"
+  echo "und dann mit  CONTAINER=<name> bash deploy.sh  starten."
   exit 1
 }
 
-echo "==> Starte Container ${CONTAINER} neu ..."
-$SSH "docker rm -f '${CONTAINER}' >/dev/null 2>&1 || true; \
-  docker run -d --name '${CONTAINER}' --restart unless-stopped \
-    --env-file '${REMOTE_DIR}/.env' \
-    -p '${HOST_PORT}:5000' \
-    --label "net.unraid.docker.webui=http://${UNRAID_HOST}:${HOST_PORT}" \
-    -v '${REMOTE_DIR}/data:/app/data' \
-    '${IMAGE}'"
+echo "==> Kopiere Projektdateien nach ${BUILD_DIR} ..."
+tar -C "$SCRIPT_DIR" -czf - \
+  --exclude=.git --exclude=.env --exclude=data --exclude=__pycache__ --exclude='*.pyc' . \
+  | "${SSH[@]}" "rm -rf '${BUILD_DIR}' && mkdir -p '${BUILD_DIR}' && tar -xzf - -C '${BUILD_DIR}'"
 
-sleep 6
+echo "==> Baue Image ${IMAGE} auf Unraid (das dauert beim ersten Mal etwas) ..."
+"${SSH[@]}" "docker build -t '${IMAGE}' '${BUILD_DIR}'"
+
+echo "==> Erstelle Container ${CONTAINER} mit bestehender Konfiguration neu ..."
+"${SSH[@]}" bash -s -- "$CONTAINER" "$IMAGE" <<'REMOTE'
+set -euo pipefail
+C="$1"; IMG="$2"; OLD="${C}-old"
+ENVFILE="$(mktemp)"; trap 'rm -f "$ENVFILE"' EXIT
+
+# Konfiguration des bestehenden Containers auslesen.
+# Variablen, die aus dem Image stammen (PATH, Python-Version ...), werden nicht übernommen.
+docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$C" \
+  | grep -vE '^(PATH|LANG|GPG_KEY|PYTHON_[A-Z_]*|DB_PATH)=' | grep -v '^$' > "$ENVFILE" || true
+mapfile -t BINDS  < <(docker inspect -f '{{range .HostConfig.Binds}}{{println .}}{{end}}' "$C" | grep -v '^$' || true)
+mapfile -t PORTS  < <(docker inspect -f '{{range $p, $l := .HostConfig.PortBindings}}{{range $l}}{{println .HostPort $p}}{{end}}{{end}}' "$C" | grep -v '^$' || true)
+mapfile -t LABELS < <(docker inspect -f '{{range $k, $v := .Config.Labels}}{{$k}}={{$v}}{{"\n"}}{{end}}' "$C" | grep -v '^$' || true)
+NETWORK="$(docker inspect -f '{{.HostConfig.NetworkMode}}' "$C")"
+RESTART="$(docker inspect -f '{{.HostConfig.RestartPolicy.Name}}' "$C")"
+
+ARGS=(-d --name "$C" --env-file "$ENVFILE")
+[[ -n "$RESTART" && "$RESTART" != "no" ]] && ARGS+=(--restart "$RESTART")
+[[ -n "$NETWORK" && "$NETWORK" != "default" ]] && ARGS+=(--network "$NETWORK")
+for b in "${BINDS[@]}"; do ARGS+=(-v "$b"); done
+for p in "${PORTS[@]}"; do read -r host cont <<<"$p"; ARGS+=(-p "${host}:${cont}"); done
+for l in "${LABELS[@]}"; do ARGS+=(--label "$l"); done
+
+# Alten Container nur umbenennen, damit er bei einem Fehler zurückgeholt werden kann.
+docker rm -f "$OLD" >/dev/null 2>&1 || true
+docker stop "$C" >/dev/null
+docker rename "$C" "$OLD"
+
+if docker run "${ARGS[@]}" "$IMG" >/dev/null; then
+  sleep 8
+  if [[ "$(docker inspect -f '{{.State.Running}}' "$C")" == "true" ]]; then
+    docker rm "$OLD" >/dev/null
+    echo "Neuer Container läuft."
+    exit 0
+  fi
+fi
+
+echo "FEHLER: Neuer Container startet nicht. Logs:"
+docker logs --tail 30 "$C" || true
+docker rm -f "$C" >/dev/null 2>&1 || true
+docker rename "$OLD" "$C"
+docker start "$C" >/dev/null
+echo "Alter Container wurde wiederhergestellt."
+exit 1
+REMOTE
+
 echo "==> Letzte Logs:"
-$SSH "docker logs --tail 30 '${CONTAINER}'"
-
+"${SSH[@]}" "docker logs --tail 30 '${CONTAINER}'"
 echo
-echo "Fertig. Dashboard: http://${UNRAID_HOST}:${HOST_PORT}"
-echo "Vergiss nicht, http://${UNRAID_HOST}:${HOST_PORT}/callback im Discord Developer Portal (OAuth2 > Redirects) einzutragen."
+echo "Fertig. Die neuen Slash-Commands erscheinen in Discord nach wenigen Minuten."

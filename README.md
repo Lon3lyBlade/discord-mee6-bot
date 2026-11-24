@@ -79,7 +79,7 @@ Discord-host/
 ├── Dockerfile                     # Ein Image für Bot + Dashboard
 ├── start.sh                       # Startet beide Prozesse im Container
 ├── docker-compose.yml             # Lokales Referenz-Setup
-├── deploy.sh                      # Zieht das aktuelle Image von ghcr.io und startet den Container auf Unraid neu
+├── deploy.sh                      # Baut das Image auf Unraid und erstellt den Container neu
 ├── requirements.txt
 └── .env.example                   # Vorlage für alle benötigten Umgebungsvariablen
 ```
@@ -133,29 +133,25 @@ eigenen Container/Prozess**, nicht im Python-Bot-Container mit.
 
 ## Deployment
 
-Das Docker-Image wird nicht mehr lokal auf dem Zielhost gebaut: Ein GitHub-Actions-Workflow
-([`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml)) baut es bei
-jedem Push auf `master` und veröffentlicht es in der GitHub Container Registry als
-`ghcr.io/lon3lyblade/discord-mee6-bot`.
+Das Image wird **auf dem Unraid-Server selbst gebaut**, kostenlos und ohne GitHub Actions oder
+Registry. Auf dem Laptop (im LAN) im Projektordner:
 
-Auf dem Unraid-Server läuft der Container als **von Unraid selbst verwaltetes Docker-Template**
-(über "Add Container" angelegt, nicht per `docker run`/`deploy.sh`) — dadurch erkennt Unraids
-Docker-Tab neue Versionen nativ ("Update Ready") und das Aktualisieren läuft einfach über
-Unraids eigenen **"Apply Update"**-Button, ganz ohne Skript.
+```bash
+bash deploy.sh
+```
 
-Einmalig nötig, da das GitHub-Package privat ist: auf dem Zielhost per
-`docker login ghcr.io -u <dein-github-username>` mit einem **classic** Personal Access Token
-anmelden, das **beide** Scopes `read:packages` **und** `repo` hat — `read:packages` allein
-reicht laut eigener Erfahrung nicht aus, wenn das Package seine Zugriffsrechte von einem
-privaten Repository erbt ("Inherit access from source repository"), der Pull schlägt sonst mit
-`denied` fehl, obwohl der Login selbst erfolgreich ist.
+[`deploy.sh`](deploy.sh) kopiert den Projektordner per SSH nach Unraid, baut dort das Image und
+erstellt den bestehenden Container mit seiner **eigenen Konfiguration** neu (Variablen, Ports,
+Volumes, Labels, Restart-Policy werden aus dem laufenden Container übernommen). Secrets und die
+Daten unter `/app/data` bleiben erhalten; startet der neue Container nicht, wird der alte
+automatisch wiederhergestellt. Eine lokale `.env` ist nicht nötig. Abweichende Werte per
+Umgebungsvariable, z.B. `CONTAINER=meinbot UNRAID_HOST=192.168.x.x bash deploy.sh`
+(Standard: `tower.local`, Container `discord-bot-dashboard`).
 
-[`deploy.sh`](deploy.sh) ist ein Überbleibsel aus einer früheren Zwischenlösung (zieht das
-Image per SSH und startet den Container neu) — **auf dem aktuell produktiv laufenden Unraid-
-Container nicht mehr ausführen**, da es den Container per rohem `docker run` neu erstellen
-würde und damit die Unraid-Template-Verwaltung (inkl. des `net.unraid.docker.webui`-Labels für
-den Dashboard-Link) wieder zerstören würde. Für ein generisches Docker-Setup ohne Unraid liegt
-außerdem eine [`docker-compose.yml`](docker-compose.yml) als Referenz bei.
+Der Container muss einmalig existieren (z.B. über Unraids "Add Container"). Unraids
+"Update Ready"-Anzeige entfällt, da es kein Registry-Image mehr gibt. Der Workflow
+[`docker-publish.yml`](.github/workflows/docker-publish.yml) läuft nur noch manuell.
+Für ein generisches Docker-Setup ohne Unraid liegt eine [`docker-compose.yml`](docker-compose.yml) bei.
 
 Details zu Zielport, Remote-Verzeichnis und Umgebungsvariablen stehen in
 [`uebergabe.md`](uebergabe.md#deployment).
